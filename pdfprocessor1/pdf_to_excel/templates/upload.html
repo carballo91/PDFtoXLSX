@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload PDF</title>
+    <style>
+        h1 {
+            text-align: center;
+        }
+        .form {
+            border: 1px solid grey;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>PDF to XLSX</h1>
+    <div class="form">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.pdf_file }}
+            <input type="submit" value="Parse">
+        </form>
+    </div>
+
+    {% if message %}
+        <p>No rows found</p>
+    {% endif %}
+    {% if download_url %}
+        <p>Your file is ready! <a href="{{ download_url }}" download>Download Excel file</a></p>
+    {% endif %}
+    
+</body>
+</html>
