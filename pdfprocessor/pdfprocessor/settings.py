@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-dg7lzyvws$^z5t8$o4r6m#q+*4r_zt!ovvb@ia$8xh52dt53dh'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['https://pdftoxlsx-xbpu.onrender.com']
 MEDIA_URL = '/media/'
