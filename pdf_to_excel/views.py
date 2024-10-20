@@ -58,7 +58,7 @@ def upload_pdf(request):
                     for row in large_table:
                         if re.search(r"^[A-Z]+[,-]", row[0]):
                             row_data = {
-                                "Run Date": run_date[0]
+                                "Run Date": run_date[0],
                                 "Carrier": "Royal Neighbors",
                                 "Agent Name": agent[1],
                                 "Agent ID": agent[0],
