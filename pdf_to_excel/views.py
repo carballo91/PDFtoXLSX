@@ -7,6 +7,7 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from .forms import PDFUploadForm
 from django.utils.html import format_html
+from django.urls import reverse
 
 def extract_text(pdf, start_page):
     page = pdf.pages[start_page]
@@ -116,7 +117,7 @@ def upload_pdf(request):
                     file.write(output.read())
 
                 # Create the download link
-                download_url = '/download_file/'
+                download_url = reverse(download_file,args=[filename])
 
             return render(request, 'upload.html', {'download_url': download_url})
 
@@ -127,9 +128,9 @@ def upload_pdf(request):
 
 from django.http import FileResponse
 
-def download_file(request):
-    file_path = '/tmp/output.xlsx'
+def download_file(request,filename):
+    file_path = os.path.join("/tmp",f'{filename}.xlsx')
     if os.path.exists(file_path):
-        return FileResponse(open(file_path, 'rb'), as_attachment=True, filename='output.xlsx')
+        return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=f'{filename}.xlsx')
     else:
         return HttpResponse("File not found", status=404)
