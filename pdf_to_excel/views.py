@@ -117,7 +117,7 @@ def upload_pdf(request):
                     file.write(output.read())
 
                 # Create the download link
-                download_url = reverse(download_file,args=[filename])
+                download_url = reverse("download_file",args=[output_name])
 
             return render(request, 'upload.html', {'download_url': download_url})
 
@@ -129,7 +129,7 @@ def upload_pdf(request):
 from django.http import FileResponse
 
 def download_file(request,filename):
-    file_path = os.path.join("/tmp",f'{filename}.xlsx')
+    file_path = os.path.join("/tmp",filename)
     if os.path.exists(file_path):
         return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=f'{filename}.xlsx')
     else:
