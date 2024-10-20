@@ -106,7 +106,7 @@ def upload_pdf(request):
                     file.write(output.read())
 
                 # Create the download link
-                download_url = f'/tmp/{filename}'
+                download_url = '/download_file/'
 
             return render(request, 'upload.html', {'download_url': download_url})
 
@@ -114,3 +114,12 @@ def upload_pdf(request):
         form = PDFUploadForm()
     
     return render(request, 'upload.html', {'form': form})
+
+from django.http import FileResponse
+
+def download_file(request):
+    file_path = '/tmp/output.xlsx'
+    if os.path.exists(file_path):
+        return FileResponse(open(file_path, 'rb'), as_attachment=True, filename='output.xlsx')
+    else:
+        return HttpResponse("File not found", status=404)
