@@ -44,6 +44,7 @@ def upload_pdf(request):
                 text = extract_text(pdf, 4)
                 
                 agents = re.findall(r"Subtotals for Agent (\w+)\s+([A-Z,.\s]+)", text)
+                run_date = re.findall(r"Run Date:\s(\d{2}/\d{2}/\d{4})",text)
                 if not agents:
                     return render(request, 'upload.html', {'form': form, 'message': True})
                 new_data, extra_cols = [], []
@@ -54,6 +55,7 @@ def upload_pdf(request):
                     for row in large_table:
                         if re.search(r"^[A-Z]+[,-]", row[0]):
                             row_data = {
+                                "Run Date": run_date[0]
                                 "Carrier": "Royal Neighbors",
                                 "Agent Name": agent[1],
                                 "Agent ID": agent[0],
@@ -78,20 +80,27 @@ def upload_pdf(request):
                 for d, e in zip(new_data, extra_cols):
                     d["Cert Adv Balance"] = e[0]
                     d["Comment"] = e[1]
+                #Column for hyperlink
+                for i in range(1):
+                    new_data[i]["Converted from .pdf by"] = ""
 
                 # Convert to pandas DataFrame
                 df = pd.DataFrame(new_data)
-                print(df.head())  # Print the first few rows of the DataFrame
-                print(f"DataFrame shape: {df.shape}")  # Print the size of the DataFrame (rows, columns)
-
-                
+           
                 # Use a BytesIO stream to store the Excel output in memory
                 output = BytesIO()
 
                 # Write the DataFrame to the BytesIO stream
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-
-                    df.to_excel(writer, index=False)
+                    df.to_excel(writer, index=False,sheet_name="Sheet1")
+                    worksheet = writer.sheets["Sheet1"]
+                    # Add hyperlinks in the "Converted from .pdf by" column
+                    website_url = "https://comtrack.io"  # The URL you want the hyperlink to point to
+                    
+                    for row_num in range(1, 2):  # Start from 1 to skip the header
+                        # Insert hyperlink in the 'Converted from .pdf by' column (assuming it's the second-last column)
+                        worksheet.write_url(row_num, df.columns.get_loc('Converted from .pdf by'), 
+                            website_url, string="ComTrack.io")
 
                 # Ensure the pointer is at the start of the stream
                 output.seek(0)
