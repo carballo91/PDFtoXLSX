@@ -5,4 +5,4 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('', views.upload_pdf, name='upload_pdf'),
-    path('download_file/', views.download_file, name='download_file'),]
+    path('download_file/<str:filename>/', views.download_file, name='download_file'),]
