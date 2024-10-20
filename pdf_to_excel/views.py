@@ -98,7 +98,7 @@ def upload_pdf(request):
                 # Save the file to a temporary location
                 # Save the file to a temporary location
                 filename = 'output.xlsx'
-                file_path = os.path.join(settings.MEDIA_ROOT, filename)
+                file_path = os.path.join('/tmp', filename)
                 print(f"File saved at: {file_path}")
 
                 # Write the BytesIO content to the file
@@ -106,7 +106,7 @@ def upload_pdf(request):
                     file.write(output.read())
 
                 # Create the download link
-                download_url = os.path.join(settings.MEDIA_URL, filename)
+                download_url = f'/tmp/{filename}'
 
             return render(request, 'upload.html', {'download_url': download_url})
 
