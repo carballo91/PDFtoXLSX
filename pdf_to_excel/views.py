@@ -36,7 +36,10 @@ def upload_pdf(request):
         form = PDFUploadForm(request.POST, request.FILES)
         if form.is_valid():
             pdf_file = request.FILES['pdf_file']
-
+            if not pdf_file.name.endswith(".pdf"):
+                return render(request, 'upload.html', {'form': form, 'message': True})
+            #Gets the name of the file and removes the pdf extension
+            output_name = pdf_file.name.rstrip(".pdf")
             # Use BytesIO to handle the file in memory
             pdf_file_memory = BytesIO(pdf_file.read())
             
@@ -105,10 +108,8 @@ def upload_pdf(request):
                 # Ensure the pointer is at the start of the stream
                 output.seek(0)
                 # Save the file to a temporary location
-                # Save the file to a temporary location
-                filename = 'output.xlsx'
+                filename = f'{output_name}.xlsx'
                 file_path = os.path.join('/tmp', filename)
-                print(f"File saved at: {file_path}")
 
                 # Write the BytesIO content to the file
                 with open(file_path, 'wb') as file:
