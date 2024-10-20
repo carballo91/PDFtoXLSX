@@ -129,7 +129,7 @@ def upload_pdf(request):
 from django.http import FileResponse
 
 def download_file(request,filename):
-    file_path = os.path.join("/tmp",filename)
+    file_path = os.path.join("/tmp",f"{filename}.xlsx")
     if os.path.exists(file_path):
         return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=f'{filename}.xlsx')
     else:
