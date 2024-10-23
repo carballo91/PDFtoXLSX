@@ -40,7 +40,7 @@ def upload_pdf(request):
             download_urls = []  # To store download URLs
             filenames = []
             for pdf in pdf_files:
-                if not pdf_file.name.endswith(".pdf"):
+                if not pdf.name.endswith(".pdf"):
                     return render(request, 'upload.html', {'form': form, 'message': True})
                 #Gets the name of the file and removes the pdf extension
                 output_name = pdf_file.name.rstrip(".pdf")
