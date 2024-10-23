@@ -90,66 +90,6 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
     <!-- Move JavaScript to the end of the body -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const dropZone = document.getElementById('dropZone');
-            const fileInput = document.getElementById('pdf_file');  
-            const fileLabel = document.querySelector('.custom-file-label');
-            const fileError = document.getElementById('fileError');
-            const loadingIndicator = document.getElementById('loading');
-            const download = document.getElementsByClassName('download')
-            const maxSize = 5 * 1024 * 1024; // 5 MB
 
-            dropZone.addEventListener('click', () => fileInput.click());
-            dropZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropZone.classList.add('over');
-            });
-            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('over');
-                fileInput.files = e.dataTransfer.files;
-                updateFileName();
-            });
-            fileInput.addEventListener('change', updateFileName);
-
-            function updateFileName() {
-                const files = fileInput.files;
-                if (files.length > 1) {
-                    fileLabel.textContent = `${files.length} files selected`;
-                } else if (files.length === 1) {
-                    fileLabel.textContent = files[0].name;
-                } else {
-                    fileLabel.textContent = 'Choose Files';
-                }
-            }
-
-            Array.from(download).forEach(function(element){
-                element.addEventListener('click',function(){
-                    setInterval(() => {
-                        this.remove()
-                    }, 500);
-                })
-            })
-
-            document.getElementById('uploadForm').addEventListener('submit', function(event) {
-                event.preventDefault(); 
-                const files = fileInput.files;
-                fileError.textContent = '';
-                loadingIndicator.style.display = 'block';
-
-                for (let i = 0; i < files.length; i++) {
-                    if (files[i].size > maxSize) {
-                        fileError.textContent = 'One or more files exceed the 5 MB size limit.';
-                        loadingIndicator.style.display = 'none'; 
-                        return;
-                    }
-                }
-
-                this.submit(); 
-            });
-        });
-    </script>
 </body>
 </html>
