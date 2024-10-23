@@ -1,95 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF to XLSX</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-
+    <title>Upload PDF</title>
     <style>
-        body {
-            margin: 0 20px;
-        }
-        label:focus {
-            border: 20px solid blue;
-        }
         h1 {
             text-align: center;
         }
-        .form-container {
-            max-width: 600px;
-            margin: 30px auto;
-            padding: 20px;
-            border-radius: 10px;
-            background-color: #f8f9fa;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .drop-zone {
-            border: 2px dashed #6c757d;
-            padding: 30px;
-            margin-top: 15px;
-            text-align: center;
-            color: #6c757d;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-        .drop-zone.over {
-            border-color: green;
-            background-color: #e9ecef;
-        }
-        #ready {
-            text-align: center;
-        }
-        #loading {
-            display: none;
-            text-align: center;
-            margin-top: 20px;
-            font-weight: bold;
-            color: #007bff;
-        }
-        #fileError {
-            color: red;
+        .form {
+            border: 1px solid grey;
+            padding: 10px;
         }
     </style>
 </head>
 <body>
-    <div class="form-container">
-        <h5>Sheet Happens</h5>
-        <form method="post" enctype="multipart/form-data" id="uploadForm">
+    <h1>PDF to XLSX</h1>
+    <div class="form">
+        <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
-            <div class="custom-file">
-                <label class="custom-file-label" for="pdf_file">Choose Files</label>
-                {{ form.pdf_file }}  
-                
-            </div>
-            <div id="dropZone" class="drop-zone">
-                Drag and Drop your PDFs here to start
-            </div>
-            <div id="fileError"></div>
-            <div id="loading">Processing your file, please wait...</div>
-            <div class="text-center mt-4">
-                <button type="submit" class="btn btn-primary">Upload</button>
-            </div>
+            {{ form.pdf_file }}
+            <input type="submit" value="Parse">
         </form>
     </div>
 
     {% if message %}
-        <p>No rows found or not a valid PDF file</p>
+        <p>No rows found or not a PDF file</p>
     {% endif %}
-    {% if download_data %}
-        <div id="ready">        
-        {% for url, file in download_data %}
-            <p class="download"><a  href="{{ url }}" download>{{ file }}</a></p>
-        {% endfor %}</div>
-
+    {% if download_url %}
+        <p>Your file is ready! <a href="{{ download_url }}" download>Download Excel file</a></p>
     {% endif %}
-
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-
-    <!-- Move JavaScript to the end of the body -->
-
+    
 </body>
 </html>
