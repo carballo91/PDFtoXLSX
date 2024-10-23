@@ -1,35 +1,155 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Upload PDF</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF to XLSX</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
     <style>
+        body {
+            margin: 0 20px;
+        }
+        label:focus {
+            border: 20px solid blue;
+        }
         h1 {
             text-align: center;
         }
-        .form {
-            border: 1px solid grey;
-            padding: 10px;
+        .form-container {
+            max-width: 600px;
+            margin: 30px auto;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #f8f9fa;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .drop-zone {
+            border: 2px dashed #6c757d;
+            padding: 30px;
+            margin-top: 15px;
+            text-align: center;
+            color: #6c757d;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .drop-zone.over {
+            border-color: green;
+            background-color: #e9ecef;
+        }
+        #ready {
+            text-align: center;
+        }
+        #loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        #fileError {
+            color: red;
         }
     </style>
 </head>
 <body>
-    <h1>PDF to XLSX</h1>
-    <div class="form">
-        <form method="post" enctype="multipart/form-data">
+    <div class="form-container">
+        <h5>Sheet Happens</h5>
+        <form method="post" enctype="multipart/form-data" id="uploadForm">
             {% csrf_token %}
-            {{ form.pdf_file }}
-            <input type="submit" value="Parse">
+            <div class="custom-file">
+                <label class="custom-file-label" for="pdf_file">Choose Files</label>
+                {{ form.pdf_file }}  
+                
+            </div>
+            <div id="dropZone" class="drop-zone">
+                Drag and Drop your PDFs here to start
+            </div>
+            <div id="fileError"></div>
+            <div id="loading">Processing your file, please wait...</div>
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-primary">Upload</button>
+            </div>
         </form>
     </div>
 
     {% if message %}
-        <p>No rows found or not a PDF file</p>
+        <p>No rows found or not a valid PDF file</p>
     {% endif %}
     {% if download_data %}
-        {% for url,name in download_data %}
-        <p>Your file is ready! <a href="{{ url }}" download>Download Excel file</a></p>
-        {% endfor %}
+        <div id="ready">        
+        {% for url, file in download_data %}
+            <p class="download"><a  href="{{ url }}" download>{{ file }}</a></p>
+        {% endfor %}</div>
+
     {% endif %}
-    
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <!-- Move JavaScript to the end of the body -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('pdf_file');  
+            const fileLabel = document.querySelector('.custom-file-label');
+            const fileError = document.getElementById('fileError');
+            const loadingIndicator = document.getElementById('loading');
+            const download = document.getElementsByClassName('download')
+            const maxSize = 5 * 1024 * 1024; // 5 MB
+
+            dropZone.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('over');
+            });
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('over');
+                fileInput.files = e.dataTransfer.files;
+                updateFileName();
+            });
+            fileInput.addEventListener('change', updateFileName);
+
+            function updateFileName() {
+                const files = fileInput.files;
+                if (files.length > 1) {
+                    fileLabel.textContent = `${files.length} files selected`;
+                } else if (files.length === 1) {
+                    fileLabel.textContent = files[0].name;
+                } else {
+                    fileLabel.textContent = 'Choose Files';
+                }
+            }
+
+            Array.from(download).forEach(function(element){
+                element.addEventListener('click',function(){
+                    setInterval(() => {
+                        this.remove()
+                    }, 500);
+                })
+            })
+
+            document.getElementById('uploadForm').addEventListener('submit', function(event) {
+                event.preventDefault(); 
+                const files = fileInput.files;
+                fileError.textContent = '';
+                loadingIndicator.style.display = 'block';
+
+                for (let i = 0; i < files.length; i++) {
+                    if (files[i].size > maxSize) {
+                        fileError.textContent = 'One or more files exceed the 5 MB size limit.';
+                        loadingIndicator.style.display = 'none'; 
+                        return;
+                    }
+                }
+
+                this.submit(); 
+            });
+        });
+    </script>
 </body>
 </html>
