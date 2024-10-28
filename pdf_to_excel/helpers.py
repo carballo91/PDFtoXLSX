@@ -54,47 +54,7 @@ class PDFEditor:
                     df = pd.DataFrame(table[1:], columns=table[0])  # Skip header
                     tables.append(df)
         return tables
-    # ------------------------------------------- ASSURITY PDF EXTRA FUNCTIONS --------------------------------------------------
-    # Function to extract name-amount pairs from sections
-    """
-    This function is used to extract data from Assurity PDF's
-    """
-    def extract_name_amounts(self,section_text, section_label, ytd_label):
-        exp = re.search(rf"{section_label}\n(.*?){ytd_label}", section_text, re.DOTALL)
-
-        if exp:
-            results = exp.group(1).strip().splitlines()
-        else:
-            return [], []  # Return empty lists if no matches found
-
-        # Regex pattern to capture the full name and amount with $ sign
-        pattern = r"([\w\s]+?)\s(\$\d+,?\d+\.\d{2})"
-        
-        first_pairs = []
-        second_pairs = []
-
-        # Extract pairs
-        for line in results:
-            matches = re.findall(pattern, line)  # Find all matches in each line
-            if matches:
-                first_pairs.append(f"{matches[0][0].strip()}, {matches[0][1]}")
-                if len(matches) > 1:
-                    second_pairs.append(f"{matches[1][0].strip()}, {matches[1][1]}")
-
-        return first_pairs, second_pairs
     
-    # Helper function to add entries to formatted_data
-    def add_to_formatted_data(self,pairs, entry_type,lst,date):
-        for pair in pairs:
-            name, amount = pair.split(", ")
-            lst.append({
-                "Carrier": "Assurity",
-                "Statement Date": date,     
-                "Type": entry_type,
-                "Agent Name": name,
-                "Amount": amount
-            })
-    # ------------------------------------------- ASSURITY PDF EXTRA FUNCTIONS --------------------------------------------------
     # ------------------------------------------- KANSAS COMMISSIONS LIFE PDF EXTRA FUNCTIONS --------------------------------------------------
     def cidToChar(self, cidx):
         """Convert (cid:XX) to a character by adding 29 to the numeric part."""
@@ -232,36 +192,55 @@ class PDFEditor:
         #print(df)
 
         return df, output_name
+    # ------------------------------------------- ASSURITY PDF EXTRA FUNCTIONS --------------------------------------------------
+    # Function to extract name-amount pairs from sections
+    """
+    This function is used to extract data from Assurity PDF's
+    """
+    def first_columns(self,text,title,endsearch,lst,date):
+        pattern = r"^([a-zA-Z-]+\s[a-zA-Z-]+(?:\s[a-zA-Z]+){0,2})\s(\$(?:\d+,)?\d+.\d+)\s[a-zA-Z-]+\s[a-zA-Z-]+(?:\s[a-zA-Z]+){0,2}\s\$(?:\d+,)?\d+.\d+$"
+        
+        columns = re.search(rf"{title} (.*?){endsearch}",text,re.DOTALL)
+        match = re.findall(pattern,columns.group(1),re.MULTILINE)
+        for pfyc in match:
+            #print(pfyc)
+            lst.append({
+                "Carrier": "Assurity",
+                "Statement Date": date,     
+                "Type": title,
+                "Agent Name": pfyc[0],
+                "Amount": pfyc[1]
+            })
+            
+    def second_columns(self,text,title,endsearch,lst,date):
+        pattern = r"([a-zA-Z-]+\s[a-zA-Z-]+(?:\s[a-zA-Z]+){0,2})\s(\$(?:\d+,)?\d+.\d+)$"
+        
+        columns = re.search(rf"{title}(.*?){endsearch}",text,re.DOTALL)
+        match = re.findall(pattern,columns.group(1),re.MULTILINE)
+        for pfyc in match:
+            #print(pfyc)
+            lst.append({
+                "Carrier": "Assurity",
+                "Statement Date": date,     
+                "Type": title,
+                "Agent Name": pfyc[0],
+                "Amount": pfyc[1]
+            })
+  
+    # ------------------------------------------- ASSURITY PDF EXTRA FUNCTIONS --------------------------------------------------
     
     def assurity_commission(self):
         output_name = self.pdf_output_name
         text = self.extract_text()
-        print(text)
         data = []
-        # Extracting pairs for each section
-        first_year_pairs, first_year_ytd = self.extract_name_amounts(
-            text,
-            "PAID FIRST YEAR COMMISSIONS",
-            "Total PFYC"
-        )
-
-        renewal_pairs, renewal_ytd = self.extract_name_amounts(
-            text,
-            "RENEWAL COMMISSIONS",
-            "Total Renewal"
-        )
-        
         date = re.search(r"as of (\d{2}/\d{2}/\d{4})", text, re.DOTALL)
         date = date.group(1) if date else "N/A"
-        
-        # Adding first year commissions and YTD commissions pairs
-        self.add_to_formatted_data(first_year_pairs, "PAID FIRST YEAR COMMISSIONS",data,date)
-        self.add_to_formatted_data(first_year_ytd, "YTD PAID FIRST YEAR COMMISSIONS",data,date)
 
-        # Adding renewal and YTD renewal pairs
-        self.add_to_formatted_data(renewal_pairs, "PAID RENEWAL COMMISSIONS",data,date)
-        self.add_to_formatted_data(renewal_ytd, "YTD PAID RENEWAL COMMISSIONS",data,date)
-        
+        self.first_columns(text,"PAID FIRST YEAR COMMISSIONS","Total PFYC",data,date)
+        self.first_columns(text,"RENEWAL COMMISSIONS","Total Renewal",data,date)
+        self.second_columns(text,"YTD PAID FIRST YEAR COMMISSIONS","Total YTD PFYC",data,date)
+        self.second_columns(text," YTD RENEWAL COMMISSIONS","Total YTD Renewal",data,date)
+
         for i in range(1):
             data[i]["Converted from .pdf by"] = "" 
         
@@ -369,11 +348,8 @@ class PDFEditor:
         date = date.group(1)
         #Info patterns
         pattern = r"(\d+)\s([a-zA-Z]+(?:\s[a-zA-Z]+){0,3})\s(\w+)\s(\d+(?:\s[a-zA-Z]+){0,4})\s(\w+)\s(.*?)(\d+\/\d+\/\d+)\s(.*?)(\d+\/\d+\/\d+)\s(\d+\/\d+)\s(\d+)\s(\w+)\s(\$ (?:\d+,)?\d+.\d+)"
-        tpe = re.findall(r"Writing Producer (\d+)\s(\w+\s\w+)\n(\w+(?:\s\w+)?)\s+(.*?)Total for",text,re.DOTALL)
+        tpe = re.findall(r"Writing Producer (\d+)\s(\w+\s\w+)\n(\w+(?:\s\w+)?)\n(.*?)Total for",text,re.DOTALL)
 
-        for t in tpe:
-            print(t[2])
-        #tpe = tpe.group(1)
         data = []
         for t in tpe:
      
