@@ -4,6 +4,7 @@ import pandas as pd
 from io import BytesIO
 import pdfplumber
 from concurrent.futures import ProcessPoolExecutor
+import gc
 
 class PDFEditor:
     def __init__(self, pdf_file):
@@ -15,22 +16,24 @@ class PDFEditor:
         return self.pdf_file.name.endswith(".pdf")
 
     
-    def extract_page_text(self,pdf_path, page_num):
+    def extract_page_text(self, pdf_path, page_num):
         with pdfplumber.open(pdf_path) as pdf:
             page_text = pdf.pages[page_num].extract_text()
+            gc.collect()  # Call garbage collection to free up memory
             return page_text or ""
 
     def extract_text(self, pages=None):
-        """Extract text from specified pages or all pages in the PDF using ProcessPoolExecutor."""
+        """Extract text from specified pages or all pages in the PDF sequentially."""
         
-        # If pages are not specified, extract from all pages.
         with pdfplumber.open(self.pdf_file) as pdf:
             if pages is None:
                 pages = range(len(pdf.pages))
         
-        # Process each page in parallel using separate processes.
-        with ProcessPoolExecutor() as executor:
-            text_list = list(executor.map(self.extract_page_text, [self.pdf_file] * len(pages), pages))
+            text_list = []
+            for page_num in pages:
+                page_text = self.extract_page_text(self.pdf_file, page_num)
+                text_list.append(page_text)
+                gc.collect()  # Optional: Call garbage collection after each page extraction
 
         # Join extracted text from all pages.
         return "\n".join(text_list)
