@@ -14,14 +14,25 @@ class PDFEditor:
         return self.pdf_file.name.endswith(".pdf")
 
     
-    def extract_text(self):
-        """Extract text from a given page in the PDF."""
+    def extract_page_text(self,pdf_path, page_num):
+        with pdfplumber.open(pdf_path) as pdf:
+            page_text = pdf.pages[page_num].extract_text()
+            return page_text or ""
+
+    def extract_text(self, pages=None):
+        """Extract text from specified pages or all pages in the PDF using ProcessPoolExecutor."""
+        
+        # If pages are not specified, extract from all pages.
         with pdfplumber.open(self.pdf_file) as pdf:
-            text = ""
-            pages = pdf.pages
-            for page in pages:
-                text += page.extract_text() +"\n"
-            return text
+            if pages is None:
+                pages = range(len(pdf.pages))
+        
+        # Process each page in parallel using separate processes.
+        with ProcessPoolExecutor() as executor:
+            text_list = list(executor.map(self.extract_page_text, [self.pdf_file] * len(pages), pages))
+
+        # Join extracted text from all pages.
+        return "\n".join(text_list)
     #Used for proccess pdf type1
     def extract_large_table(self,start_page, agent_table_number):
         full_table = []
