@@ -3,6 +3,7 @@ import re
 import pandas as pd
 from io import BytesIO
 import pdfplumber
+from concurrent.futures import ProcessPoolExecutor
 
 class PDFEditor:
     def __init__(self, pdf_file):
