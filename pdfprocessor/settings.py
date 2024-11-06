@@ -60,13 +60,20 @@ MIDDLEWARE = [
     'csp.middleware.CSPMiddleware',
 ]
 CSP_FRAME_ANCESTORS = ["*"]
-CSP_STYLE_SRC = ["'self'", "'unsafe-inline'"]
+CSP_STYLE_SRC = [
+    "'self'",
+    "'unsafe-inline'",  # If using inline styles
+    "https://stackpath.bootstrapcdn.com",
+]
+
 CSP_SCRIPT_SRC = [
     "'self'",
+    "'unsafe-inline'",
     "https://code.jquery.com",
     "https://cdn.jsdelivr.net",
     "https://stackpath.bootstrapcdn.com",
 ]
+
 CSP_FONT_SRC = ["'self'"]
 
 ROOT_URLCONF = 'pdfprocessor.urls'
