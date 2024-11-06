@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-dg7lzyvws$^z5t8$o4r6m#q+*4r_zt!ovvb@ia$8xh52dt53dh
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['pdftoxlsx-xbpu.onrender.com,pdftoxlsx-h9ma.onrender.com']
+ALLOWED_HOSTS = ['pdftoxlsx-xbpu.onrender.com','pdftoxlsx-h9ma.onrender.com']
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
