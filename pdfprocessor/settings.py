@@ -56,6 +56,9 @@ MIDDLEWARE = [
     'csp.middleware.CSPMiddleware',
 ]
 CSP_FRAME_ANCESTORS = ["*"]
+CSP_STYLE_SRC = ["'self'"]
+CSP_SCRIPT_SRC = ["'self'"]
+CSP_FONT_SRC = ["'self'"]
 
 ROOT_URLCONF = 'pdfprocessor.urls'
 
