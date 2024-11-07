@@ -79,6 +79,11 @@ CSP_FONT_SRC = ["'self'"]
 CSRF_TRUSTED_ORIGINS = [
     'https://comtrack.io/development-page/',
 ]
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True
+
 
 ROOT_URLCONF = 'pdfprocessor.urls'
 
