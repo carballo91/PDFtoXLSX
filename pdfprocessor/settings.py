@@ -59,7 +59,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'csp.middleware.CSPMiddleware',
 ]
-CSP_FRAME_ANCESTORS = ["*"]
+CSP_FRAME_ANCESTORS = ["https://comtrack.io"]
 CSP_STYLE_SRC = [
     "'self'",
     "'unsafe-inline'",  # If using inline styles
@@ -81,9 +81,17 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 CSRF_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_SECURE = True
+# Ensures CSRF cookie is secure and HttpOnly
+CSRF_COOKIE_HTTPONLY = True
+# Ensures session cookie is secure and HttpOnly
+SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'None'
 SESSION_COOKIE_SECURE = True
 
+
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
 
 ROOT_URLCONF = 'pdfprocessor.urls'
 
