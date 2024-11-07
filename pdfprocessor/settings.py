@@ -78,7 +78,7 @@ CSP_SCRIPT_SRC = [
 CSP_FONT_SRC = ["'self'"]
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://comtrack.io/development-page/',
+    'https://comtrack.io',
 ]
 CSRF_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_SECURE = True
