@@ -64,6 +64,7 @@ CSP_STYLE_SRC = [
     "'self'",
     "'unsafe-inline'",  # If using inline styles
     "https://stackpath.bootstrapcdn.com",
+    "https://cdn.jsdelivr.net",
 ]
 
 CSP_SCRIPT_SRC = [
