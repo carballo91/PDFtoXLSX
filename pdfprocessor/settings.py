@@ -76,6 +76,10 @@ CSP_SCRIPT_SRC = [
 
 CSP_FONT_SRC = ["'self'"]
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://comtrack.io/development-page/',
+]
+
 ROOT_URLCONF = 'pdfprocessor.urls'
 
 TEMPLATES = [
