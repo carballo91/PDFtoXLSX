@@ -49,14 +49,14 @@ def upload_pdf(request):
                     df, output_name = pdf_editor.bcbs_la_commisions()
                 elif "Current ContractSubscriber Name Company MOP OED Due Date Product Name Premium Elapsed Comm. % Commission" in first_page_text:
                     df, output_name = pdf_editor.bcbs_la_compensation()
-                else:
+                elif "Member ID Writing ID Name Product State Date Term Date Term Code Period Type Retro Amount" in first_page_text:
                     df, output_name = pdf_editor.essence_file()
 
                 if df is None:
                     return render(request, 'upload.html', {'form': form, 'message': True})
 
                 # Save the DataFrame to Excel and get the file path
-                file_path, filename = pdf_editor.save_to_excel(df, output_name)
+                filename = pdf_editor.save_to_excel(df, output_name)
 
                 # Create the download link
                 download_url = reverse("download_file", args=[output_name])
