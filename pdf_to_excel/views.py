@@ -49,6 +49,8 @@ def upload_pdf(request):
                     df, output_name = pdf_editor.bcbs_la_commisions()
                 elif "Current ContractSubscriber Name Company MOP OED Due Date Product Name Premium Elapsed Comm. % Commission" in first_page_text:
                     df, output_name = pdf_editor.bcbs_la_compensation()
+                else:
+                    df, output_name = pdf_editor.essence_file()
 
                 if df is None:
                     return render(request, 'upload.html', {'form': form, 'message': True})
