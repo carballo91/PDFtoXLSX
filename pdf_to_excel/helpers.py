@@ -450,7 +450,6 @@ class PDFEditor:
     def essence_file(self):
         output_name = self.pdf_output_name
         text = self.extract_text()
-        print(text)
         
         data = []
         
