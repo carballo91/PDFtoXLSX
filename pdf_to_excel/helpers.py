@@ -446,6 +446,54 @@ class PDFEditor:
         
         df = pd.DataFrame(data)
         return df, output_name
+    
+    def essence_file(self):
+        output_name = self.pdf_output_name
+        text = self.extract_text()
+        
+        data = []
+        
+        agency = re.search(r"(.*?)Statement Of Commissions",text)
+        
+        writing_agent_pattern =r'Writing Agent \d+ ((?:[a-zA-Z]*\s)?[a-zA-Z]+, (?:[a-zA-Z]*\s)?[a-zA-Z]*)\n'
+        writing_agent = re.search(writing_agent_pattern, text)
+        
+        statement_date = re.search(r"Commission Period: (\d{2}\/\d{2} - \d{2}\/\d{2})",text)
+        
+        pattern = r'(\d+) (\d+) ((?:[a-zA-Z]*\s)?[a-zA-Z]+, (?:[a-zA-Z]*\s)?[a-zA-Z]*) (\w+) (\w{2}) (\d{2}\/\d{2}\/\d{4}) ((?:\d+\/\d+\s)?)((?:\w+\s)?)(\d{2}\/\d{4}) (\w+) (\w+) (\$\d+.\d+)'
+
+        filtered = re.findall(r"Writing Agent(.*?)Total for (?:Annual Renewals|New Enrollments)",text,re.DOTALL)
+        info = re.findall(pattern, str(filtered), re.DOTALL)
+        statement_type = re.search(r"(Annual Renewals|New Enrollments)",str(filtered))
+        print(f"Stament type is {statement_type.group(1)}")
+        for row in info:
+            data.append({
+                "Carrier": "Essence Healthcare",
+                "Statement Type": "Statement of Commissions",
+                "Agency": agency.group(1),
+                "Statement Date": statement_date.group(1),
+                "Type": statement_type.group(1),
+                "Writing Agent": writing_agent.group(1),
+                "Writing ID": row[1],
+                "Member ID": row[0],
+                "Name": row[2],
+                "Product": row[3],
+                "Policy State": row[4],
+                "Effective Date": row[5],
+                "Term Date": row[6],
+                "Term Code": row[7],
+                "Period": row[8],
+                "CMS Payment Type": row[9],
+                "Retro": row[10],
+                "Commission Ammount": row[11],
+            })
+        
+        for i in range(1):
+            data[i]["Converted from .pdf by"] = ""
+        
+        df = pd.DataFrame(data)
+        return df, output_name
+        
 
     def save_to_excel(self, df, output_name):
         """Save DataFrame to an Excel file and return the file path."""
