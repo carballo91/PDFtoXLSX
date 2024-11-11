@@ -42,12 +42,12 @@ class PDFEditor:
         full_table = []
         table_found = False
         with pdfplumber.open(self.pdf_file) as pdf:
-            print(f"Lenght is {len(pdf.pages)}")
-            print(agent_table_number)
+            #print(f"Lenght is {len(pdf.pages)}")
+            #print(agent_table_number)
             for page_num in range(start_page, len(pdf.pages)):
                 page = pdf.pages[page_num]
                 tables = page.extract_tables()
-                print(f"Tables length {len(tables)}")
+                #print(f"Tables length {len(tables)}")
                 if tables:
                     if not table_found:
                         full_table.extend(tables[agent_table_number])
@@ -105,7 +105,7 @@ class PDFEditor:
 
         for i, agent in enumerate(agents):
             large_table = self.extract_large_table(4, i)
-            print(len(large_table))
+            #print(len(large_table))
 
             for row in large_table:
                 if re.search(r"^[A-Z]+[,-]", row[0]):
@@ -159,10 +159,10 @@ class PDFEditor:
         pattern = r"(\d+)\s([a-zA-Z-]+\s[a-zA-Z-]+(?:\s[a-zA-Z-]+){0,2})\s([a-zA-Z-]+\s[a-zA-Z-]+(?:\s[a-zA-Z-]+){0,2})\s(\d+)\s(\w+)\s(\d+\/\d+\/\d+)\s(Premium Payment)\s(\$(?:\d+,)?\d+.\d+)(\s\$?\w+)?(\s\$?\w+)?\s(\d+.\d+)\s(\(?\$(?:\d+,)?\d+.\d+\)?)"
         text_parts = re.search(r"Renewal LIFE\nCommission(.*?)Renewal Override LIFE", text, re.DOTALL)
         if text_parts:
-            print(text_parts.group(1))
+            #print(text_parts.group(1))
             match = re.findall(pattern,text_parts.group(1),re.DOTALL)
             for renewal_commission_results in match:
-                print(renewal_commission_results)
+                #print(renewal_commission_results)
                 data_table.append({
                     "Carrier": "Foresters",
                     "type" : "Renewal Commissions LIFE",
@@ -358,7 +358,7 @@ class PDFEditor:
     def bcbs_la_commisions(self):
         output_name = self.pdf_output_name
         text = self.extract_text()
-        print(text)
+        #print(text)
         date = re.search(r"Activity Ending Date: (\d+\/\d+\/\d+)",text,re.DOTALL)
         date = date.group(1)
         #Info patterns
@@ -404,7 +404,7 @@ class PDFEditor:
         output_name = self.pdf_output_name
         text = self.extract_text()
         data = []
-        print(text)
+        #print(text)
         date = re.search(r"Activity Ending Date: (\d+\/\d+\/\d+)",text,re.DOTALL)
         date = date.group(1)
         
