@@ -450,6 +450,7 @@ class PDFEditor:
     def essence_file(self):
         output_name = self.pdf_output_name
         text = self.extract_text()
+        print(text)
         
         data = []
         
@@ -465,7 +466,7 @@ class PDFEditor:
         filtered = re.findall(r"Writing Agent(.*?)Total for (?:Annual Renewals|New Enrollments)",text,re.DOTALL)
         info = re.findall(pattern, str(filtered), re.DOTALL)
         statement_type = re.search(r"(Annual Renewals|New Enrollments)",str(filtered))
-        print(f"Stament type is {statement_type.group(1)}")
+
         for row in info:
             data.append({
                 "Carrier": "Essence Healthcare",
@@ -519,4 +520,4 @@ class PDFEditor:
         with open(file_path, 'wb') as file:
             file.write(output.read())
 
-        return file_path, filename
+        return filename
