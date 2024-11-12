@@ -3,7 +3,6 @@ import re
 import pandas as pd
 from io import BytesIO
 import pdfplumber
-from concurrent.futures import ProcessPoolExecutor
 import gc
 
 class PDFEditor:
@@ -450,6 +449,7 @@ class PDFEditor:
     def essence_file(self):
         output_name = self.pdf_output_name
         text = self.extract_text()
+        #print(text)
         
         data = []
         
@@ -519,4 +519,4 @@ class PDFEditor:
         with open(file_path, 'wb') as file:
             file.write(output.read())
 
-        return filename
+        return file_path
