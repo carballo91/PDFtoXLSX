@@ -59,7 +59,7 @@ def upload_pdf(request):
      
             if len(filenames) > 1: # Create the zip file containing all the Excel files 
    
-                download_url = reverse("download_file", args=["processed_pdfs.zip"])
+                download_url = reverse("download_file", args=[urllib.parse.quote("processed_pdfs.zip")])
                 name = download_url.split("/")[2]
                 print(name)
             else: # Single file, do not create a zip 
