@@ -87,14 +87,16 @@
             </form>
         </div>
         <div class="form-files">
-            <div id="ready">        
+            <div id="ready">
                 {% if message %}
                     <p>No rows found or not a valid PDF file</p>
                 {% endif %}
-                {% if download_data %}
-                    {% for url, file in download_data %}
-                        <p class="download"><a  href="{{ url }}" download>{{ file }}</a></p>
-                    {% endfor %}
+                
+                {% if download_url %}
+                    <!-- Provide a single download link for the ZIP file -->
+                    <p class="download">
+                        <a href="{{ download_url }}" download="processed_files.zip">{{ name }}</a>
+                    </p>
                 {% endif %}
             </div>
         </div>
