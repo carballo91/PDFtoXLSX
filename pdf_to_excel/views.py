@@ -4,9 +4,9 @@ from django.http import HttpResponse, FileResponse
 from .forms import PDFUploadForm
 from django.urls import reverse
 from .helpers import PDFEditor
-import urllib.parse
-from django.urls import reverse
-
+from io import BytesIO
+import zipfile
+import urllib
 
 def upload_pdf(request):
     if request.method == "POST":
@@ -14,21 +14,20 @@ def upload_pdf(request):
         if form.is_valid():
             pdf_files = request.FILES.getlist('pdf_file')  # Get the list of uploaded files
             filenames = []
-
+            
             for pdf_file in pdf_files:
                 # Create an instance of the PDFEditor class
                 pdf_editor = PDFEditor(pdf_file)
-
+                
                 # Check if the uploaded file is a valid PDF
                 if not pdf_editor.is_valid_pdf():
                     return render(request, 'upload.html', {'form': form, 'message': True})
 
-                # Extract text from the first page (or relevant page) to check for "Run Date"
+                # Extract text from the PDF and determine processing method
                 first_page_text = pdf_editor.extract_text()
                 decoded = pdf_editor.processText(first_page_text)
-
+                print(first_page_text)
                 df = None
-                # Determine which PDF processing method to call based on the presence of "Run Date"
                 if "Earned Commission Statement" in first_page_text:
                     # Process using method for the PDF with "Run Date" and "Agents"
                     df, output_name = pdf_editor.process_pdf_type1()
@@ -49,32 +48,46 @@ def upload_pdf(request):
                     df, output_name = pdf_editor.bcbs_la_compensation()
                 elif "Member ID Writing ID Name Product State Date Term Date Term Code Period Type Retro Amount" in first_page_text:
                     df, output_name = pdf_editor.essence_file()
-
+                # Add other conditions as needed...
                 if df is None:
                     return render(request, 'upload.html', {'form': form, 'message': True})
 
-                # Save the DataFrame to Excel and get the file path
+                # Save the DataFrame to Excel and store the file path
                 filename = pdf_editor.save_to_excel(df, output_name)
                 filenames.append(filename)
-     
-            if len(filenames) > 1: # Create the zip file containing all the Excel files 
-   
-                download_url = reverse("download_file", args=[urllib.parse.quote("processed_pdfs.zip")])
+                print(f"Filename is {filename}")
+
+            if len(filenames) > 1:
+                # Multiple files - create a zip file
+                in_memory_zip = BytesIO()
+                with zipfile.ZipFile(in_memory_zip, 'w') as zipf:
+                    for file_path in filenames:
+                        zipf.write(file_path, os.path.basename(file_path))
+                in_memory_zip.seek(0)
+
+                # Save the zip file to temporary storage and generate download URL
+                zip_filename = "processed_pdfs.zip"
+                zip_path = os.path.join("/tmp", zip_filename)
+                with open(zip_path, 'wb') as f:
+                    f.write(in_memory_zip.getvalue())
+
+                download_url = reverse("download_file", args=[urllib.parse.quote(zip_filename)])
                 name = download_url.split("/")[2]
-                print(name)
-            else: # Single file, do not create a zip 
-                single_file_name = os.path.basename(filenames[0]) 
+            else:
+                # Single file, no zip needed
+                single_file_name = os.path.basename(filenames[0])
                 download_url = reverse("download_file", args=[urllib.parse.quote(single_file_name)])
                 name = download_url.split("/")[2]
-                print(name)
-            return render(request, 'upload.html', {'download_url': download_url, 'form': form,"name":name,})
 
+            return render(request, 'upload.html', {'download_url': download_url, 'form': form,"name":name})
     else:
         form = PDFUploadForm()
 
     return render(request, 'upload.html', {'form': form})
 
+
 def download_file(request, filename):
+    # Decode the filename and construct the file path
     file_path = os.path.join("/tmp", urllib.parse.unquote(filename))
     if os.path.exists(file_path):
         return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=filename)
