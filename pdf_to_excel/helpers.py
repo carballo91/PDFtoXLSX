@@ -3,6 +3,7 @@ import re
 import pandas as pd
 from io import BytesIO
 import pdfplumber
+from concurrent.futures import ProcessPoolExecutor
 import gc
 
 class PDFEditor:
@@ -503,19 +504,15 @@ class PDFEditor:
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             df.to_excel(writer, index=False, sheet_name="Sheet1")
             worksheet = writer.sheets["Sheet1"]
-
-            # Add hyperlinks in the "Converted from .pdf by" column
             website_url = "https://comtrack.io"
-            for row_num in range(1, 2):  # Start from 1 to skip the header
-                worksheet.write_url(row_num, df.columns.get_loc('Converted from .pdf by'),
-                                    website_url, string="ComTrack.io")
+            for row_num in range(1, 2):
+                worksheet.write_url(row_num, df.columns.get_loc('Converted from .pdf by'), website_url, string="ComTrack.io")
 
-        # Save the file to a temporary location
+        # Save the file to /tmp for consistent access
         output.seek(0)
-        filename = f'{output_name}.xlsx'
-        file_path = os.path.join('/tmp', filename)
+        filename = f"{output_name}.xlsx"
+        file_path = os.path.join("/tmp", filename)
 
-        # Write the BytesIO content to the file
         with open(file_path, 'wb') as file:
             file.write(output.read())
 
