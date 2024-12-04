@@ -3,7 +3,6 @@ import re
 import pandas as pd
 from io import BytesIO
 import pdfplumber
-from concurrent.futures import ProcessPoolExecutor
 import gc
 
 class PDFEditor:
@@ -22,12 +21,12 @@ class PDFEditor:
             gc.collect()  # Call garbage collection to free up memory
             return page_text or ""
 
-    def extract_text(self, pages=None):
+    def extract_text(self,start=0, pages=None):
         """Extract text from specified pages or all pages in the PDF sequentially."""
         
         with pdfplumber.open(self.pdf_file) as pdf:
             if pages is None:
-                pages = range(len(pdf.pages))
+                pages = range(start,len(pdf.pages))
         
             text_list = []
             for page_num in pages:
@@ -495,7 +494,108 @@ class PDFEditor:
         df = pd.DataFrame(data)
         return df, output_name
         
+    def blueshield_of_california(self):
+        carrier = "Blue Shield CA"
+        output_name = self.pdf_output_name
+        text = self.extract_text(1)
 
+        data = []
+        
+        date_pattern = r'Statement Date: ([0-9\/]+)'
+        date = re.search(date_pattern,text)
+        
+        pattern = r'([A-Z]+ [A-Z]),\s+([A-Z0-9]+)\s+([0-9]+)\s+([A-Za-z\s]+)\s+([0-9\/]+)\s+([0-9\/]+)\s+\$?([0-9.,]+)\s+\$?([0-9.,]+)\s+([0-9.]+)%?\s+\$?\s*([0-9.,]+)\n([A-Z]+)'
+        pattern2 = r'([A-Z0-9]+)\s+([0-9]+)\s+([A-Z\s,.]+)\s+([A-Za-z\s]+)\s+([0-9\/]+)\s+([0-9\/]+)\s+(\$?[0-9.,]+)\s+(\$?[0-9.,]+)\s+([0-9.]+%?)\s+(\$?\s?[0-9.,]+)'
+        pattern3 = r'([a-zA-Z\s\-\/]+)(\d+)\s([A-Z,\s]+)\s(\d+\/\d+\/\d+)\s(.*?)(\d+\/\d+)\s(\d+)\s([$\s0-9.]+)([a-zA-Z]+)'
+        
+        producer_info_pattern = r'Writing Producer(.*?)([a-zA-Z,\s]+)NPN(.*?)'
+        
+        commission_pattern = r"(.*?)Writing Producer"
+        
+        table_pattern = r'Blue Shield of California(.+?)Total \$' 
+        tables = re.findall(table_pattern,text,re.DOTALL)
+        
+        for i in range(len(tables)):
+            info = re.findall(pattern,tables[i], re.DOTALL)
+            info2 = re.findall(pattern2,tables[i],re.DOTALL)
+            info3 = re.findall(pattern3,tables[i],re.DOTALL)
+            producer_info = re.search(producer_info_pattern,tables[i])
+            commission_info = re.findall(commission_pattern,tables[i],re.DOTALL)
+            if info:
+                for row in info:
+                    data.append({
+                        "Carrier" : carrier,
+                        "Statement Date" : date.group(1),
+                        "Writing Producer ID" : producer_info.group(1),
+                        "Producer NPN": producer_info.group(3),
+                        "Producer Name": producer_info.group(2),
+                        "Group Number": row[1],
+                        "Subscriber ID": row[2],
+                        "Customer Name": row[0] + ", " + row[-1],
+                        "Product": row[3],
+                        "Effective Date": row[4],
+                        "Term Date": "",
+                        "Period": row[5],
+                        "Gross Premium": row[6],
+                        "Base Premium": row[7],
+                        "Commission Rate": row[8],
+                        "Cycle Year": "",
+                        "Commission Paid": row[9],
+                        "Commission Type": commission_info[0].strip("\n"),
+                    })
+            if info2:
+                for row in info2:
+                    data.append({
+                        "Carrier" : carrier,
+                        "Statement Date" : date.group(1),
+                        "Writing Producer ID" : producer_info.group(1),
+                        "Producer NPN": producer_info.group(3),
+                        "Producer Name": producer_info.group(2),
+                        "Group Number": row[0],
+                        "Subscriber ID": row[1],
+                        "Customer Name": row[2],
+                        "Product": row[3],
+                        "Effective Date": row[4],
+                        "Term Date": "",
+                        "Period": row[5],
+                        "Gross Premium": row[6],
+                        "Base Premium": row[7],
+                        "Commission Rate": row[8],
+                        "Cycle Year": "",
+                        "Commission Paid": row[9],
+                        "Commission Type": commission_info[0].strip("\n"),
+                    })
+            if info3:
+                other_commission_match = re.search(r"Commission Paid(.*)",tables[i],re.DOTALL)
+                
+                other_commission = re.findall(pattern3,other_commission_match.group(1),re.DOTALL)
+                for row in other_commission:
+                    data.append({
+                        "Carrier" : carrier,
+                        "Statement Date" : date.group(1),
+                        "Writing Producer ID" : producer_info.group(1),
+                        "Producer NPN": producer_info.group(3),
+                        "Producer Name": producer_info.group(2),
+                        "Group Number": "",
+                        "Subscriber ID": row[1],
+                        "Customer Name": row[2],
+                        "Product": row[0] + " " + row[-1],
+                        "Effective Date": row[3],
+                        "Term Date": row[4],
+                        "Period": row[5],
+                        "Gross Premium": "",
+                        "Base Premium": "",
+                        "Commission Rate": "",
+                        "Cycle Year": row[6],
+                        "Commission Paid": row[7].strip("\n"),
+                        "Commission Type": commission_info[0].strip("\n"),
+                    })
+        for i in range(1):
+            data[i]["Converted from .pdf by"] = ""
+        
+        df = pd.DataFrame(data)
+        return df, output_name
+        
     def save_to_excel(self, df, output_name):
         """Save DataFrame to an Excel file and return the file path."""
         output = BytesIO()
