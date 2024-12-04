@@ -26,7 +26,7 @@ def upload_pdf(request):
                 # Extract text from the PDF and determine processing method
                 first_page_text = pdf_editor.extract_text()
                 decoded = pdf_editor.processText(first_page_text)
-                print(first_page_text)
+                #print(first_page_text)
                 df = None
                 if "Earned Commission Statement" in first_page_text:
                     # Process using method for the PDF with "Run Date" and "Agents"
@@ -48,6 +48,8 @@ def upload_pdf(request):
                     df, output_name = pdf_editor.bcbs_la_compensation()
                 elif "Member ID Writing ID Name Product State Date Term Date Term Code Period Type Retro Amount" in first_page_text:
                     df, output_name = pdf_editor.essence_file()
+                elif "Blue Shield of California" in first_page_text: 
+                    df,output_name = pdf_editor.blueshield_of_california()
                 # Add other conditions as needed...
                 if df is None:
                     return render(request, 'upload.html', {'form': form, 'message': True})
@@ -55,7 +57,7 @@ def upload_pdf(request):
                 # Save the DataFrame to Excel and store the file path
                 filename = pdf_editor.save_to_excel(df, output_name)
                 filenames.append(filename)
-                print(f"Filename is {filename}")
+                #print(f"Filename is {filename}")
 
             if len(filenames) > 1:
                 # Multiple files - create a zip file
