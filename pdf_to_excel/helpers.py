@@ -597,7 +597,7 @@ class PDFEditor:
         return df, output_name
     
     def providence(self):
-        carrier = "Providence"
+        carrier = "Providence Med Adv"
         output_name =  self.pdf_output_name
         text = self.extract_text(1)
         
