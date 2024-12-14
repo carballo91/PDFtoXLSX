@@ -597,7 +597,7 @@ class PDFEditor:
         return df, output_name
     
     def providence(self):
-        carrier = "providence"
+        carrier = "Providence"
         output_name =  self.pdf_output_name
         text = self.extract_text(1)
         
@@ -610,17 +610,19 @@ class PDFEditor:
         pattern2 = r'^(\w+)\s+(?:(\w+ \w+ \w+|[a-zA-Z]+,?(?: [a-zA-Z]+)?,?(?: [a-zA-Z]{1})?|[a-zA-Z-,]+))\s+(\D+(?: \D+)?)\s+(\D+)\s+(x\w+\s)?(\d+\/\d+\/\d+)\s+(\d+\/\d+\/\d+\s)?(\d+\/\d+\/\d+\s+)?(\d+\/\d+)\s+(\d*\s)?(\w{1})\s+(-?\$ \d+.\d+)'
         producer_pattern = r'^Producer (.*?)Total for Writing Producer'
         producer_info_pattern = r'^(\d+)\s([a-zA-Z ,-]+)$'
-        
+        # Creates a list of all the producers
         filtered = re.findall(producer_pattern,text,re.DOTALL|re.MULTILINE)
-        
+        # Loops through the list of producers
         for f in filtered:
+            # List of producer names and IDs
             producer_info = re.findall(producer_info_pattern,f,re.DOTALL|re.MULTILINE)
-            # Gets info from New Enrollment to Total New Enrollments or Renewals
+            # Creates list of  New Enrollment to Total New Enrollments or Renewals for each producer
             new = re.findall(pattern,f,re.DOTALL|re.MULTILINE)
-
+            # Loops through the list of New Enrollment to Total New Enrollments or Renewals
             for n in new:
+                # Gets the transaction type
                 transaction_type = n[0]
-
+                # Creates a list of members information for each producer, loops through it and stores information in a list
                 info = re.findall(pattern2,n[1],re.DOTALL|re.MULTILINE)
                 for i in info:
                     data.append({
