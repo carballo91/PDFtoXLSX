@@ -595,6 +595,73 @@ class PDFEditor:
         
         df = pd.DataFrame(data)
         return df, output_name
+    
+    def providence(self):
+        carrier = "providence"
+        output_name =  self.pdf_output_name
+        text = self.extract_text(1)
+        
+        agency = re.match(r'^([a-zA-Z ]+)\n\d+',text,re.DOTALL)
+        commission_period = re.search(r'Commission Period: ([0-9- ]+)',text)
+
+        data = []
+        
+        pattern = r'^(New Enrollment|Renewals)(.*?)(?:Total for New Enrollments|Total for Renewals)'
+        pattern2 = r'(\w+)\s+(?:(\w+ \w+ \w+|[a-zA-Z]+,?(?: [a-zA-Z]+)?,?(?: [a-zA-Z]{1})?|[a-zA-Z-,]+))\s+(\D+(?: \D+)?)\s+(\D+)\s+(\w+)\s+(\d+\/\d+\/\d+)\s+(\d+\/\d+\/\d+\s)?(\d+\/\d+\/\d+\s+)?(\d+\/\d+)\s+(\d*\s)?(\w{1})\s+(-?\$ \d+.\d+)'
+        producer_pattern = r'^Producer (.*?)Total for Writing Producer'
+        producer_info_pattern = r'^(\d+)\s([a-zA-Z ,-]+)$'
+        
+        # print(f"El texto es {text}")
+        filtered = re.findall(producer_pattern,text,re.DOTALL|re.MULTILINE)
+        # print(f"Filatrado es {filtered}")
+        print(len(filtered))
+        
+        for f in filtered:
+            producer_info = re.findall(producer_info_pattern,f,re.DOTALL|re.MULTILINE)
+            
+            # print(f)
+            #data.append(f)
+            new = re.findall(pattern,f,re.DOTALL|re.MULTILINE)
+            print(len(new))
+            print(producer_info[0][0])
+            #print(new)
+            #print(type(f))
+            for n in new:
+                transaction_type = n[0]
+                #print(type(str(n)))
+                #data.append(n)
+                print(transaction_type)
+                info = re.findall(pattern2,n[1],re.DOTALL)
+                for i in info:
+                    data.append({
+                        "Carrier": carrier,
+                        "Agency": agency.group(1),
+                        "Document Type": "Statement Of Commissions",
+                        "Commission Period": commission_period.group(1),
+                        "Producer Name": producer_info[0][1],
+                        "Producer ID": producer_info[0][0],
+                        "Transaction Type": transaction_type,
+                        "Member ID": i[0],
+                        "Name": i[1],
+                        "Line of Business": i[2],
+                        "Product": i[3],
+                        "MBI": i[4],
+                        "Effective Date": i[5],
+                        "Term Date": i[6],
+                        "Signed Date": i[7],
+                        "Period": i[8],
+                        "Cycle Year": i[9],
+                        "Retro": i[10],
+                        "Commission Ammount": i[11],        
+                    })
+                #        data.append((n[0], i))
+                    #    print(n[0])
+                    #    print(i)
+        for i in range(1):
+            data[i]["Converted from .pdf by"] = ""
+        
+        df = pd.DataFrame(data)
+        return df, output_name
         
     def save_to_excel(self, df, output_name):
         """Save DataFrame to an Excel file and return the file path."""
