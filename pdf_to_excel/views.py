@@ -50,6 +50,8 @@ def upload_pdf(request):
                     df, output_name = pdf_editor.essence_file()
                 elif "Blue Shield of California" in first_page_text: 
                     df,output_name = pdf_editor.blueshield_of_california()
+                elif "Member ID Name Line of BusinessProduct MBI Effective Term Date Signed Date Period Cycle Retro ?Commissio" in first_page_text:
+                    df,output_name = pdf_editor.providence()
                 # Add other conditions as needed...
                 if df is None:
                     return render(request, 'upload.html', {'form': form, 'message': True})
