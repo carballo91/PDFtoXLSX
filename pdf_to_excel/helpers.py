@@ -607,31 +607,21 @@ class PDFEditor:
         data = []
         
         pattern = r'^(New Enrollment|Renewals)(.*?)(?:Total for New Enrollments|Total for Renewals)'
-        pattern2 = r'(\w+)\s+(?:(\w+ \w+ \w+|[a-zA-Z]+,?(?: [a-zA-Z]+)?,?(?: [a-zA-Z]{1})?|[a-zA-Z-,]+))\s+(\D+(?: \D+)?)\s+(\D+)\s+(\w+)\s+(\d+\/\d+\/\d+)\s+(\d+\/\d+\/\d+\s)?(\d+\/\d+\/\d+\s+)?(\d+\/\d+)\s+(\d*\s)?(\w{1})\s+(-?\$ \d+.\d+)'
+        pattern2 = r'^(\w+)\s+(?:(\w+ \w+ \w+|[a-zA-Z]+,?(?: [a-zA-Z]+)?,?(?: [a-zA-Z]{1})?|[a-zA-Z-,]+))\s+(\D+(?: \D+)?)\s+(\D+)\s+(x\w+\s)?(\d+\/\d+\/\d+)\s+(\d+\/\d+\/\d+\s)?(\d+\/\d+\/\d+\s+)?(\d+\/\d+)\s+(\d*\s)?(\w{1})\s+(-?\$ \d+.\d+)'
         producer_pattern = r'^Producer (.*?)Total for Writing Producer'
         producer_info_pattern = r'^(\d+)\s([a-zA-Z ,-]+)$'
         
-        # print(f"El texto es {text}")
         filtered = re.findall(producer_pattern,text,re.DOTALL|re.MULTILINE)
-        # print(f"Filatrado es {filtered}")
-        print(len(filtered))
         
         for f in filtered:
             producer_info = re.findall(producer_info_pattern,f,re.DOTALL|re.MULTILINE)
-            
-            # print(f)
-            #data.append(f)
+            # Gets info from New Enrollment to Total New Enrollments or Renewals
             new = re.findall(pattern,f,re.DOTALL|re.MULTILINE)
-            print(len(new))
-            print(producer_info[0][0])
-            #print(new)
-            #print(type(f))
+
             for n in new:
                 transaction_type = n[0]
-                #print(type(str(n)))
-                #data.append(n)
-                print(transaction_type)
-                info = re.findall(pattern2,n[1],re.DOTALL)
+
+                info = re.findall(pattern2,n[1],re.DOTALL|re.MULTILINE)
                 for i in info:
                     data.append({
                         "Carrier": carrier,
@@ -654,12 +644,10 @@ class PDFEditor:
                         "Retro": i[10],
                         "Commission Ammount": i[11],        
                     })
-                #        data.append((n[0], i))
-                    #    print(n[0])
-                    #    print(i)
+
         for i in range(1):
             data[i]["Converted from .pdf by"] = ""
-        
+
         df = pd.DataFrame(data)
         return df, output_name
         
