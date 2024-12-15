@@ -607,7 +607,7 @@ class PDFEditor:
         data = []
         
         pattern = r'^(New Enrollment|Renewals)(.*?)(?:Total for New Enrollments|Total for Renewals)'
-        pattern2 = r'^(\w+)\s+(?:(\w+ \w+ \w+|[a-zA-Z]+,?(?: [a-zA-Z]+)?,?(?: [a-zA-Z]+)?|[a-zA-Z-,]+))\s+(\D+(?: \D+)?)\s+(\D+)\s+(x\w+\s)?(\d{2}\/\d{2}\/\d{4})\s(|\d{2}\/\d{2}\/\d{4}\s)(\d{2}\/\d{2}\/\d{4}\s|)(\d{2}\/\d{4})\s+(\d*\s)?(\w{1})\s+(-?\$ \d+.\d+)'
+        pattern2 = r'^(\w+)\s+(?:(\w+ \w+ \w+|[a-zA-Z-]+,?(?: [a-zA-Z]+)?,?(?: [a-zA-Z]+)?|[a-zA-Z-,]+))\s+(\D+(?: \D+)?)\s+(\D+)\s+(x\w+\s)?(\d{2}\/\d{2}\/\d{4})\s(|\d{2}\/\d{2}\/\d{4}\s)(\d{2}\/\d{2}\/\d{4}\s|)(\d{2}\/\d{4})\s+(\d*\s)?(\w{1})\s+(-?\$ \d+.\d+)'
         producer_pattern = r'^Producer (.*?)Total for Writing Producer'
         producer_info_pattern = r'^(\d+)\s([a-zA-Z ,-]+)$'
         # Creates a list of all the producers
