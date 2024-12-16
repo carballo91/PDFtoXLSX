@@ -3,7 +3,7 @@ import re
 import pandas as pd
 from io import BytesIO
 import pdfplumber
-import gc
+
 
 class PDFEditor:
     def __init__(self, pdf_file):
@@ -18,7 +18,7 @@ class PDFEditor:
     def extract_page_text(self, pdf_path, page_num):
         with pdfplumber.open(pdf_path) as pdf:
             page_text = pdf.pages[page_num].extract_text()
-            gc.collect()  # Call garbage collection to free up memory
+            # gc.collect()  # Call garbage collection to free up memory
             return page_text or ""
 
     def extract_text(self,start=0, pages=None):
@@ -32,7 +32,7 @@ class PDFEditor:
             for page_num in pages:
                 page_text = self.extract_page_text(self.pdf_file, page_num)
                 text_list.append(page_text)
-                gc.collect()  # Optional: Call garbage collection after each page extraction
+                # gc.collect()  # Optional: Call garbage collection after each page extraction
 
         # Join extracted text from all pages.
         return "\n".join(text_list)
@@ -600,6 +600,7 @@ class PDFEditor:
         carrier = "Providence Med Adv"
         output_name =  self.pdf_output_name
         text = self.extract_text(1)
+
         
         agency = re.match(r'^([a-zA-Z ]+)\n\d+',text,re.DOTALL)
         commission_period = re.search(r'Commission Period: ([0-9- ]+)',text)
@@ -607,7 +608,7 @@ class PDFEditor:
         data = []
         
         pattern = r'^(New Enrollment|Renewals)(.*?)(?:Total for New Enrollments|Total for Renewals)'
-        pattern2 = r'^(\w+)\s+(?:(\w+ \w+ \w+|[a-zA-Z-]+,?(?: [a-zA-Z]+)?,?(?: [a-zA-Z]+)?|[a-zA-Z-,]+))\s+(\D+(?: \D+)?)\s+(\D+)\s+(x\w+\s)?(\d{2}\/\d{2}\/\d{4})\s(|\d{2}\/\d{2}\/\d{4}\s)(\d{2}\/\d{2}\/\d{4}\s|)(\d{2}\/\d{4})\s+(\d*\s)?(\w{1})\s+(-?\$ \d+.\d+)'
+        pattern2 = r'^(\w+)\s+(?:(\w+ \w+ \w+,?|\w+ \w+ \w+,? \w?|[a-zA-Z-]+,?(?: [a-zA-Z-]+)?,?(?: [a-zA-Z]+)?,?(?: [a-zA-Z]+)?|[a-zA-Z-,]+))\s+([a-zA-Z]{2,}(?: \D+)?)\s+(\D+)\s+(x\w+\s)?(\d{2}\/\d{2}\/\d{4})\s(|\d{2}\/\d{2}\/\d{4}\s)(\d{2}\/\d{2}\/\d{4}\s|)(\d{2}\/\d{4})\s+(\d*\s)?(\w{1})\s+(-?\$ \d+.\d+)'
         producer_pattern = r'^Producer (.*?)Total for Writing Producer'
         producer_info_pattern = r'^(\d+)\s([a-zA-Z ,-]+)$'
         # Creates a list of all the producers
