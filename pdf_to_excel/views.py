@@ -7,6 +7,7 @@ from .helpers import PDFEditor
 from io import BytesIO
 import zipfile
 import urllib
+import time
 
 def upload_pdf(request):
     if request.method == "POST":
@@ -14,6 +15,7 @@ def upload_pdf(request):
         if form.is_valid():
             pdf_files = request.FILES.getlist('pdf_file')  # Get the list of uploaded files
             filenames = []
+            
             
             for pdf_file in pdf_files:
                 # Create an instance of the PDFEditor class
@@ -23,9 +25,11 @@ def upload_pdf(request):
                 if not pdf_editor.is_valid_pdf():
                     return render(request, 'upload.html', {'form': form, 'message': True})
 
+                # start_time = time.time()
                 # Extract text from the PDF and determine processing method
-                first_page_text = pdf_editor.extract_text()
+                first_page_text = pdf_editor.extract_text(pages=2)
                 decoded = pdf_editor.processText(first_page_text)
+                
                 #print(first_page_text)
                 df = None
                 if "Earned Commission Statement" in first_page_text:
@@ -60,7 +64,8 @@ def upload_pdf(request):
                 filename = pdf_editor.save_to_excel(df, output_name)
                 filenames.append(filename)
                 #print(f"Filename is {filename}")
-
+                # end_time = time.time()
+                # print(f"Time taken to run everything : {end_time - start_time:.2f} seconds")
             if len(filenames) > 1:
                 # Multiple files - create a zip file
                 in_memory_zip = BytesIO()
