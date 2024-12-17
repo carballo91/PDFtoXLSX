@@ -3,7 +3,8 @@ import re
 import pandas as pd
 from io import BytesIO
 import pdfplumber
-
+# import time
+import fitz
 
 class PDFEditor:
     def __init__(self, pdf_file):
@@ -27,7 +28,8 @@ class PDFEditor:
         with pdfplumber.open(self.pdf_file) as pdf:
             if pages is None:
                 pages = range(start,len(pdf.pages))
-        
+            else:
+                pages = range(pages)
             text_list = []
             for page_num in pages:
                 page_text = self.extract_page_text(self.pdf_file, page_num)
@@ -68,6 +70,32 @@ class PDFEditor:
                     df = pd.DataFrame(table[1:], columns=table[0])  # Skip header
                     tables.append(df)
         return tables
+    
+    # Uses PyMuPDF
+    def extract_text_from_range(self,start_page,end_page=None):
+        # start_time = time.time()
+        extracted_text = ""
+
+        self.pdf_file.seek(0) 
+        file_content = self.pdf_file.read()
+        
+        with fitz.open(stream=file_content,filetype="pdf") as pdf:
+            total_pages = len(pdf)
+            # Validate the range
+            if start_page < 0:
+                print(f"Invalid page range. The PDF has {total_pages} pages.")
+                return ""
+            if end_page is None:
+                end_page = total_pages
+            
+            for page_number in range(start_page, end_page):
+                page = pdf[page_number]  # Access each page in the range
+                extracted_text += page.get_text() + "\n"  # Append text from each page, add newline for separation
+
+        # end_time = time.time()
+        # print(f"Time taken to extract text from pages {start_page + 1} : {end_time - start_time:.2f} seconds")
+
+        return extracted_text
     
     # ------------------------------------------- KANSAS COMMISSIONS LIFE PDF EXTRA FUNCTIONS --------------------------------------------------
     def cidToChar(self, cidx):
@@ -597,61 +625,95 @@ class PDFEditor:
         return df, output_name
     
     def providence(self):
+        # start_time = time.time()
         carrier = "Providence Med Adv"
         output_name =  self.pdf_output_name
-        text = self.extract_text(1)
+        text = self.extract_text_from_range(0)
+        # text = self.extract_text(1)
 
-        
-        agency = re.match(r'^([a-zA-Z ]+)\n\d+',text,re.DOTALL)
+        # agency = re.match(r'^([a-zA-Z ]+)\n\d+',text,re.DOTALL)
+        agency = re.search(r'\w+\n([a-zA-Z ]+?)\nNPN',text,re.DOTALL|re.MULTILINE)
         commission_period = re.search(r'Commission Period: ([0-9- ]+)',text)
 
         data = []
         
-        pattern = r'^(New Enrollment|Renewals)(.*?)(?:Total for New Enrollments|Total for Renewals)'
-        pattern2 = r'^(\w+)\s+(?:(\w+ \w+ \w+,?|\w+ \w+ \w+,? \w?|[a-zA-Z-]+,?(?: [a-zA-Z-]+)?,?(?: [a-zA-Z]+)?,?(?: [a-zA-Z]+)?|[a-zA-Z-,]+))\s+([a-zA-Z]{2,}(?: \D+)?)\s+(\D+)\s+(x\w+\s)?(\d{2}\/\d{2}\/\d{4})\s(|\d{2}\/\d{2}\/\d{4}\s)(\d{2}\/\d{2}\/\d{4}\s|)(\d{2}\/\d{4})\s+(\d*\s)?(\w{1})\s+(-?\$ \d+.\d+)'
-        producer_pattern = r'^Producer (.*?)Total for Writing Producer'
-        producer_info_pattern = r'^(\d+)\s([a-zA-Z ,-]+)$'
+        producer_pattern = r'Producer(.*?)Writing Producer\s+(\w+)\s+([a-zA-Z-, ]+)'
+        enrollments_renewals_pattern = r'^(New Enrollment|Renewals)(.*?)(?:Total for New Enrollments|Total for Renewals)'
+        clients_info = r'^([a-zA-Z-,0-9]+)\n(\w+)\s?([a-zA-Z \-,0-9]+)\n(-?\$[0-9 .]+)\n([a-zA-Z]{1})\n(\d+\/\d+\/\d+)\n(\d+\/\d+\/\d+\n)?(|\d+\/\d+\/\d+)\n(\d+)?\n?([0-9]{2}\/\d+)\n([a-zA-Z]+\s[a-zA-Z]+|[a-zA-Z]+)\s([a-zA-Z]+)$'
+        client_info_pattern = r'^(x[a-zA-Z0-9]+)?\n?(\w+)\s?([a-zA-Z \-,0-9]+)\n(-?\$[0-9 .]+)\n([a-zA-Z]{1})\n([a-zA-Z -]+)\n(\d+\/\d+\/\d+)\n(\d+\/\d+\/\d+)?\n?(\d+\/\d+\/\d+)?\n?(\d+\n)?(\d+\/\d+)\n([a-zA-Z -]+)\n'
+        
         # Creates a list of all the producers
         filtered = re.findall(producer_pattern,text,re.DOTALL|re.MULTILINE)
+        found = False
         # Loops through the list of producers
         for f in filtered:
-            # List of producer names and IDs
-            producer_info = re.findall(producer_info_pattern,f,re.DOTALL|re.MULTILINE)
             # Creates list of  New Enrollment to Total New Enrollments or Renewals for each producer
-            new = re.findall(pattern,f,re.DOTALL|re.MULTILINE)
+            new = re.findall(enrollments_renewals_pattern,f[0],re.DOTALL|re.MULTILINE)
             # Loops through the list of New Enrollment to Total New Enrollments or Renewals
             for n in new:
                 # Gets the transaction type
-                transaction_type = n[0]
                 # Creates a list of members information for each producer, loops through it and stores information in a list
-                info = re.findall(pattern2,n[1],re.DOTALL|re.MULTILINE)
+    
+                info = re.findall(clients_info,n[1],re.DOTALL|re.MULTILINE)
+                if not found:
+                    client_info = re.findall(client_info_pattern,n[1],re.DOTALL|re.MULTILINE)
+                    if client_info:
+                        for i in client_info:
+                            transaction_type = n[0]
+                            data.append({
+                                "Carrier": carrier,
+                                "Agency": agency.group(1),
+                                "Document Type": "Statement Of Commissions",
+                                "Commission Period": commission_period.group(1),
+                                "Producer Name": f[2],
+                                "Producer ID": f[1],
+                                "Transaction Type": transaction_type,
+                                "Member ID": i[1],
+                                "Name": i[2],
+                                "Line of Business": i[11],
+                                "Product": i[5],
+                                "MBI": i[0],
+                                "Effective Date": i[6],
+                                "Term Date": i[7],
+                                "Signed Date": i[8],
+                                "Period": i[10],
+                                "Cycle Year": i[9],
+                                "Retro": i[4],
+                                "Commission Ammount": i[3],        
+                            })
+                        found = True
+                                  
                 for i in info:
+                    transaction_type = n[0]
                     data.append({
                         "Carrier": carrier,
                         "Agency": agency.group(1),
                         "Document Type": "Statement Of Commissions",
                         "Commission Period": commission_period.group(1),
-                        "Producer Name": producer_info[0][1],
-                        "Producer ID": producer_info[0][0],
+                        "Producer Name": f[2],
+                        "Producer ID": f[1],
                         "Transaction Type": transaction_type,
-                        "Member ID": i[0],
-                        "Name": i[1],
-                        "Line of Business": i[2],
-                        "Product": i[3],
-                        "MBI": i[4],
+                        "Member ID": i[1],
+                        "Name": i[2],
+                        "Line of Business": i[10],
+                        "Product": i[11],
+                        "MBI": i[0],
                         "Effective Date": i[5],
                         "Term Date": i[6],
                         "Signed Date": i[7],
-                        "Period": i[8],
-                        "Cycle Year": i[9],
-                        "Retro": i[10],
-                        "Commission Ammount": i[11],        
+                        "Period": i[9],
+                        "Cycle Year": i[8],
+                        "Retro": i[4],
+                        "Commission Ammount": i[3],        
                     })
-
-        for i in range(1):
-            data[i]["Converted from .pdf by"] = ""
+        
+        if len(data) > 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
 
         df = pd.DataFrame(data)
+        # end_time = time.time()
+        # print(f"Time taken to run Providence method : {end_time - start_time:.2f} seconds")
         return df, output_name
         
     def save_to_excel(self, df, output_name):
