@@ -59,6 +59,15 @@ class PDFEditor:
                     break
         return full_table
     
+    def extract_tables_from_pdf(self):
+        all_tables = []
+        with pdfplumber.open(self.pdf_file) as pdf:
+            for page in pdf.pages:
+                # Extract tables from the page
+                tables = page.extract_tables()
+                all_tables.extend(tables)
+        return all_tables
+    
     def extract_tables(self):
         tables = []  # List to store extracted tables
         with pdfplumber.open(self.pdf_file) as pdf:
@@ -707,7 +716,7 @@ class PDFEditor:
                         "Commission Ammount": i[3],        
                     })
         
-        if len(data) > 1:
+        if len(data) >= 1:
             for i in range(1):
                 data[i]["Converted from .pdf by"] = ""
 
@@ -715,6 +724,149 @@ class PDFEditor:
         # end_time = time.time()
         # print(f"Time taken to run Providence method : {end_time - start_time:.2f} seconds")
         return df, output_name
+    
+    def cincinatti(self):
+        output_name = self.pdf_output_name
+        agency_text = self.extract_text(pages=1)
+        agency_pattern = r'([a-zA-Z0-9 ,]+)\nFrom (\d+\/\d+\/\d+ to \d+\/\d+\/\d+)'
+        match = re.search(agency_pattern,agency_text)
+        agency, payment_period = match.groups()
+        # print(agency)
+        # print(payment_period)
+        info_pattern = r'(\d+)\s+([a-zA-Z -.]+)\s+(\d+)\s+(|\w+)\s?(\d+\/\d+\/\d+)\s([0-9.,]+)\s([0-9.]+%)?\s?(\w+)?\s(\d+\/\d+\/\d+)?\s*(-?[0-9]{,5}\.?\d{,2}?)?\s*([a-zA-Z]+ [a-zA-Z]+\s|[a-zA-Z\n]+\s)?(\d{8}\s)?([-0-9.,]+)$'
+        
+        text = self.extract_tables_from_pdf()
+        carrier = "Cincinnati Equitable"
+        data = []
+        x = ""
+        # print(text)
+        for table in text:
+            # print(f"Table lengh is {len(table)}")
+            # print(f"La rason es indice {table[1]}")
+            reason = table[1][7]
+            if reason == None:
+                reason = table[1][6] if table[1][6] is not None else table[1][10]
+            # print(f"Reason is {reason}")
+            info = table[6:-2]
+            # print(info)
+            # for i in info:
+            #     data.append({
+            #         "Carrier": carrier,
+            #         "Agency": agency,
+            #         "Payment Period": payment_period,
+            #         "Policy Number": i[0],
+            #         "Insured Name": i[1],
+            #         "Issue Age": i[2],
+            #         "Policy Type": i[3],
+            #         "Issue Date": i[4],
+            #         "Base": i[5],
+            #         "Rate": i[6],
+            #         reason + " " + "Reason": i[7],
+            #         reason + " " + "Date": i[8],
+            #         "Chargeback Amount": i[9],
+            #         "Producer": i[10] if not i[10].isdigit() else "", 
+            #         "Producer Code": i[10] if i[10].isdigit() else "",
+            #         "Commission Paid": i[11],
+            #     })
+            for row in info:
+                # print(f"Row in info is {row}")
+                for i in row:
+                    if i is None:
+                        i = ""
+                    x = x + " " + i
+                x = x + "\n"
+                # print(f"Convertido a string: {x}")
+                results = re.findall(info_pattern,x)
+                # print(f"Los resultados son {results}")
+                for i in results:
+                    data.append({
+                        "Carrier": carrier,
+                        "Agency": agency,
+                        "Payment Period": payment_period,
+                        "Policy Number": i[0],
+                        "Insured Name": i[1],
+                        "Issue Age": i[2],
+                        "Policy Type": i[3],
+                        "Issue Date": i[4],
+                        "Base": i[5],
+                        "Rate": i[6],
+                        reason + " " + "Reason": i[7],
+                        reason + " " + "Date": i[8],
+                        "Chargeback Amount": i[9],
+                        "Producer": i[10], 
+                        "Producer Code": i[11],
+                        "Commission Paid": i[12],
+                    })
+                # x = re.search()
+                # print(x)
+            # for t in table[6]:
+            #     x = x + " " + t
+            # for row in table:
+            #     print(f"El tipo de row es {type(row)}")
+            #     print(row[1])
+            #     print(row[6])
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        # print(data)
+        df = pd.DataFrame(data)
+        return df,output_name
+        
+    def polish_falcons(self):
+        output_name = self.pdf_output_name
+        data = []
+        carrier = "Polish Falcons of America"
+        text = self.extract_text(pages=1)
+        agency_pattern = r'^\d+\/\d+\/\d+.*\n\w+\s(.*)'
+        match = re.search(agency_pattern,text,re.MULTILINE)
+        agency = match.group(1)
+        # print(f"Agency is {match.group(1)}")
+        
+        text = self.extract_text_from_range(0)
+        tables_pattern = r'(.*?)\s*(\w+ - [a-zA-Z ,.]+)'
+        tables = re.findall(tables_pattern,text,re.DOTALL)
+        
+        info_pattern = r'(\w+)\s*(\d+ \(\w+\))\n(\w)\s*([0-9.,]+)\s*([0-9.]+)\s*(\d+)\s*([0-9.]+)\s*([0-9.]+)\s*(-?[0-9.]+)\s*(\d+)\s*(\w+)\s*([a-zA-Z-. ]+)\s*(-?[0-9.]+)\s*([0-9.]+)\s*(-?[0-9.]+)\s*(\d+\/\d+\/\d+)\s*(\d+\/\d+\/\d+)'
+        # print(f"Las tablas son {len(tables)}")
+        for table in tables:
+            # print(len(table))
+            # print(f"El group uno de tables es {table[1]}")
+            info = re.findall(info_pattern,table[0])
+            # print(len(info))
+            for i in info:
+                data.append({
+                    "Carrier": carrier,
+                    "Agency": agency,
+                    "Policy": i[0],
+                    "Insured/Anuitant": i[11],
+                    "Plan": i[1],
+                    "Issue Date": i[16],
+                    "Mode": i[2],
+                    "Value": i[3],
+                    "Base Premium": i[4],
+                    "Age": i[5],
+                    "Year": i[9],
+                    "Selling Agent": i[10],
+                    "Agent Share": "",
+                    "Payment Date": i[15],
+                    "Payment": i[8],
+                    "Percent": i[7],
+                    "Earned": i[12],
+                    "Advanced": i[13],
+                    "Repaid": i[14],
+                    "Paid to Agent": i[6]
+                })
+            data.append({
+                "Extra": table[1]
+                })
+
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        # print(data)
+        df = pd.DataFrame(data)
+        return df,output_name
+        
         
     def save_to_excel(self, df, output_name):
         """Save DataFrame to an Excel file and return the file path."""
