@@ -27,9 +27,12 @@ def upload_pdf(request):
 
                 # start_time = time.time()
                 # Extract text from the PDF and determine processing method
-                first_page_text = pdf_editor.extract_text(pages=2)
+                try:
+                    first_page_text = pdf_editor.extract_text(pages=2)
+                except IndexError:
+                    first_page_text = pdf_editor.extract_text(pages=1)
                 decoded = pdf_editor.processText(first_page_text)
-                
+                # print(first_page_text)
                 #print(first_page_text)
                 df = None
                 if "Earned Commission Statement" in first_page_text:
@@ -56,6 +59,10 @@ def upload_pdf(request):
                     df,output_name = pdf_editor.blueshield_of_california()
                 elif "Member ID Name Line of BusinessProduct MBI Effective Term Date Signed Date Period Cycle Retro ?Commissio" in first_page_text:
                     df,output_name = pdf_editor.providence()
+                elif "Policy Number Insured Name Issue Policy Type Issue Date Commission Reason Date Chargeback Producer Commission" in first_page_text or "Policy Insured Name Issue Policy Type Issue Base Rate Reason Date Chargeback Producer Commission" in first_page_text or "Policy Insured Name Issue Policy Issue Date Base Rate Reason Date Chargeback Producer Commission" in first_page_text or "Policy Number Insured Name Issue Policy Type Issue Date Base Rate Reason Date Chargeback Producer Commission" in first_page_text:
+                    df, output_name = pdf_editor.cincinatti()
+                else:
+                    df,output_name = pdf_editor.polish_falcons()
                 # Add other conditions as needed...
                 if df is None:
                     return render(request, 'upload.html', {'form': form, 'message': True})
