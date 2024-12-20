@@ -61,7 +61,7 @@ def upload_pdf(request):
                     df,output_name = pdf_editor.providence()
                 elif "Policy Number Insured Name Issue Policy Type Issue Date Commission Reason Date Chargeback Producer Commission" in first_page_text or "Policy Insured Name Issue Policy Type Issue Base Rate Reason Date Chargeback Producer Commission" in first_page_text or "Policy Insured Name Issue Policy Issue Date Base Rate Reason Date Chargeback Producer Commission" in first_page_text or "Policy Number Insured Name Issue Policy Type Issue Date Base Rate Reason Date Chargeback Producer Commission" in first_page_text:
                     df, output_name = pdf_editor.cincinatti()
-                else:
+                elif "Policy Insured/Anuitant Plan Date Mode Value Premium Age Year Agent Share Date Payment Percent Earned Advanced Repaid to Agent" in first_page_text:
                     df,output_name = pdf_editor.polish_falcons()
                 # Add other conditions as needed...
                 if df is None:
