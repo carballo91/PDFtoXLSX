@@ -652,7 +652,6 @@ class PDFEditor:
         
         # Creates a list of all the producers
         filtered = re.findall(producer_pattern,text,re.DOTALL|re.MULTILINE)
-        found = False
         # Loops through the list of producers
         for f in filtered:
             # Creates list of  New Enrollment to Total New Enrollments or Renewals for each producer
@@ -691,7 +690,7 @@ class PDFEditor:
                             "Retro": i[4],
                             "Commission Ammount": i[3],        
                         })
-                    found = True
+                    
                                   
                 for i in info:
                     transaction_type = n[0]
