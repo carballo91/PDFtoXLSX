@@ -638,7 +638,6 @@ class PDFEditor:
         carrier = "Providence Med Adv"
         output_name =  self.pdf_output_name
         text = self.extract_text_from_range(0)
-        # text = self.extract_text(1)
 
         # agency = re.match(r'^([a-zA-Z ]+)\n\d+',text,re.DOTALL)
         agency = re.search(r'\w+\n([a-zA-Z ]+?)\nNPN',text,re.DOTALL|re.MULTILINE)
@@ -664,33 +663,35 @@ class PDFEditor:
                 # Creates a list of members information for each producer, loops through it and stores information in a list
     
                 info = re.findall(clients_info,n[1],re.DOTALL|re.MULTILINE)
-                if not found:
-                    client_info = re.findall(client_info_pattern,n[1],re.DOTALL|re.MULTILINE)
-                    if client_info:
-                        for i in client_info:
-                            transaction_type = n[0]
-                            data.append({
-                                "Carrier": carrier,
-                                "Agency": agency.group(1),
-                                "Document Type": "Statement Of Commissions",
-                                "Commission Period": commission_period.group(1),
-                                "Producer Name": f[2],
-                                "Producer ID": f[1],
-                                "Transaction Type": transaction_type,
-                                "Member ID": i[1],
-                                "Name": i[2],
-                                "Line of Business": i[11],
-                                "Product": i[5],
-                                "MBI": i[0],
-                                "Effective Date": i[6],
-                                "Term Date": i[7],
-                                "Signed Date": i[8],
-                                "Period": i[10],
-                                "Cycle Year": i[9],
-                                "Retro": i[4],
-                                "Commission Ammount": i[3],        
-                            })
-                        found = True
+        
+                client_info = re.findall(client_info_pattern,n[1],re.DOTALL|re.MULTILINE)
+                
+                if client_info:
+                    
+                    for i in client_info:
+                        transaction_type = n[0]
+                        data.append({
+                            "Carrier": carrier,
+                            "Agency": agency.group(1),
+                            "Document Type": "Statement Of Commissions",
+                            "Commission Period": commission_period.group(1),
+                            "Producer Name": f[2],
+                            "Producer ID": f[1],
+                            "Transaction Type": transaction_type,
+                            "Member ID": i[1],
+                            "Name": i[2],
+                            "Line of Business": i[11],
+                            "Product": i[5],
+                            "MBI": i[0],
+                            "Effective Date": i[6],
+                            "Term Date": i[7],
+                            "Signed Date": i[8],
+                            "Period": i[10],
+                            "Cycle Year": i[9],
+                            "Retro": i[4],
+                            "Commission Ammount": i[3],        
+                        })
+                    found = True
                                   
                 for i in info:
                     transaction_type = n[0]
@@ -817,6 +818,8 @@ class PDFEditor:
         data = []
         carrier = "Polish Falcons of America"
         text = self.extract_text(pages=1)
+        test = self.extract_text_from_range(start_page=0,end_page=1)
+        print(text)
         agency_pattern = r'^\d+\/\d+\/\d+.*\n\w+\s(.*)'
         match = re.search(agency_pattern,text,re.MULTILINE)
         agency = match.group(1)
