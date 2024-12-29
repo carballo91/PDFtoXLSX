@@ -638,6 +638,8 @@ class PDFEditor:
         carrier = "Providence Med Adv"
         output_name =  self.pdf_output_name
         text = self.extract_text_from_range(0)
+        test = self.extract_text_from_range(start_page=91,end_page=95)
+        print(test)
 
         # agency = re.match(r'^([a-zA-Z ]+)\n\d+',text,re.DOTALL)
         agency = re.search(r'\w+\n([a-zA-Z ]+?)\nNPN',text,re.DOTALL|re.MULTILINE)
@@ -868,6 +870,59 @@ class PDFEditor:
         # print(data)
         df = pd.DataFrame(data)
         return df,output_name
+    def kskj_Life(self):
+        output_name = self.pdf_output_name
+        data = []
+        carrier = "KSKJ Life"
+        text = self.extract_text()
+
+        date_pattern = r'period ending (\d+\/\d+\/\d+)'
+        date = re.search(date_pattern,text)
+        
+        # agency_pattern = r'.+?\n.+?\n(.+)'
+        # agency = re.search(agency_pattern,text)
+        
+        agency_pattern = r'^[a-zA-Z0-9 -]+\n[a-zA-Z0-9 ,-]+\n([a-zA-Z0-9 ,]+)(?:TRANSACTION CODES)?'
+        agency_name = re.search(agency_pattern,text)
+        if "TRANSACTION CODES" in agency_name.group(1):
+            agency = re.sub(r" TRANSACTION CODES","",agency_name.group(1))
+        else:
+            agency = agency_name.group(1)
+        
+        agent_pattern = r'Agt Code \d+ (.*?) Pay Method'
+        agent = re.search(agent_pattern,text)
+        
+        info_pattern = r'Writing Agent(.+?)Total Commission Amount'
+        info = re.findall(info_pattern,text,re.DOTALL)
+        
+        client_pattern = r'^(\d+) (\w+) ([a-zA-Z ,-]+) *(\d) (\d+ )?(\d+\/\d+ )?(-?\d{,2}) ([0-9.,-]+) ?([0-9.,-]+) ?([0-9.,-]+)$'
+        
+        for i in info:
+            clients = re.findall(client_pattern,i,re.MULTILINE)
+            for client in clients:
+                data.append({
+                    "Carrier": carrier,
+                    "Date": date.group(1),
+                    "Agency": agency,
+                    "Writing Agent": client[0],
+                    "Agt Name": agent.group(1),
+                    "Policy No.": client[1],
+                    "Description": client[2],
+                    "Code": client[3],
+                    "Dur.": client[4],
+                    "Date Due": client[5],
+                    "Mths": client[6],
+                    "Premium": client[7],
+                    "Rate": client[8],
+                    "Commission": client[9], 
+                })
+
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        # print(data)
+        df = pd.DataFrame(data)
+        return df,output_name        
         
         
     def save_to_excel(self, df, output_name):
