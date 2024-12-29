@@ -63,6 +63,8 @@ def upload_pdf(request):
                     df, output_name = pdf_editor.cincinatti()
                 elif "Policy Insured/Anuitant Plan Date Mode Value Premium Age Year Agent Share Date Payment Percent Earned Advanced Repaid to Agent" in first_page_text:
                     df,output_name = pdf_editor.polish_falcons()
+                elif "Writing Agent Policy No. Description Code Dur. Date Due Mths. Premium Rate Commission" in first_page_text:
+                    df,output_name = pdf_editor.kskj_Life()
                 # Add other conditions as needed...
                 if df is None:
                     return render(request, 'upload.html', {'form': form, 'message': True})
