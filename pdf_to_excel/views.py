@@ -18,11 +18,13 @@ def upload_pdf(request):
             
             
             for pdf_file in pdf_files:
+                # print(f"PDF File is {pdf_file}")
                 # Create an instance of the PDFEditor class
                 pdf_editor = PDFEditor(pdf_file)
                 
                 # Check if the uploaded file is a valid PDF
                 if not pdf_editor.is_valid_pdf():
+                    print("It is not valid")
                     return render(request, 'upload.html', {'form': form, 'message': True})
 
                 # start_time = time.time()
@@ -35,6 +37,8 @@ def upload_pdf(request):
                 # print(first_page_text)
                 #print(first_page_text)
                 df = None
+                output_name = ""
+                # print(first_page_text)
                 if "Earned Commission Statement" in first_page_text:
                     # Process using method for the PDF with "Run Date" and "Agents"
                     df, output_name = pdf_editor.process_pdf_type1()
@@ -65,16 +69,19 @@ def upload_pdf(request):
                     df,output_name = pdf_editor.polish_falcons()
                 elif "Writing Agent Policy No. Description Code Dur. Date Due Mths. Premium Rate Commission" in first_page_text:
                     df,output_name = pdf_editor.kskj_Life()
+                elif "PFA Financial Life" in first_page_text:
+                    df,output_name = pdf_editor.polish_falcons2()
                 # Add other conditions as needed...
-                if df is None:
-                    return render(request, 'upload.html', {'form': form, 'message': True})
+                # if df is None:
+                #     print(f"Df is none {output_name}")
+                #     return render(request, 'upload.html', {'form': form, 'message': True})
 
                 # Save the DataFrame to Excel and store the file path
                 filename = pdf_editor.save_to_excel(df, output_name)
-                filenames.append(filename)
-                #print(f"Filename is {filename}")
-                # end_time = time.time()
-                # print(f"Time taken to run everything : {end_time - start_time:.2f} seconds")
+                # print(f"Type of filename is {type(filename)}")
+                if filename is not None:
+                    filenames.append(filename)
+
             if len(filenames) > 1:
                 # Multiple files - create a zip file
                 in_memory_zip = BytesIO()
@@ -93,7 +100,10 @@ def upload_pdf(request):
                 name = download_url.split("/")[2]
             else:
                 # Single file, no zip needed
-                single_file_name = os.path.basename(filenames[0])
+                try:
+                    single_file_name = os.path.basename(filenames[0])
+                except IndexError:
+                    return render(request, 'upload.html', {'form': form, 'message': True})
                 download_url = reverse("download_file", args=[urllib.parse.quote(single_file_name)])
                 name = download_url.split("/")[2]
 
