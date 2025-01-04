@@ -854,7 +854,7 @@ class PDFEditor:
                     "Paid to Agent": row[12]
                 })
             data.append({
-                "Extra": agent_no + "-" + agency
+                "Extra": agent_no + " - " + agency
                 })
         if len(data) >= 1:
             for i in range(1):
