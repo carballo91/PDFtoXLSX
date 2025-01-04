@@ -43,12 +43,11 @@ class PDFEditor:
         full_table = []
         table_found = False
         with pdfplumber.open(self.pdf_file) as pdf:
-            #print(f"Lenght is {len(pdf.pages)}")
-            #print(agent_table_number)
+
             for page_num in range(start_page, len(pdf.pages)):
                 page = pdf.pages[page_num]
                 tables = page.extract_tables()
-                #print(f"Tables length {len(tables)}")
+
                 if tables:
                     if not table_found:
                         full_table.extend(tables[agent_table_number])
@@ -102,7 +101,7 @@ class PDFEditor:
                 extracted_text += page.get_text() + "\n"  # Append text from each page, add newline for separation
 
         # end_time = time.time()
-        # print(f"Time taken to extract text from pages {start_page + 1} : {end_time - start_time:.2f} seconds")
+
 
         return extracted_text
     
@@ -141,7 +140,6 @@ class PDFEditor:
 
         for i, agent in enumerate(agents):
             large_table = self.extract_large_table(4, i)
-            #print(len(large_table))
 
             for row in large_table:
                 if re.search(r"^[A-Z]+[,-]", row[0]):
@@ -190,15 +188,12 @@ class PDFEditor:
         # Extract text from the necessary pages and apply regex as needed
         text = self.extract_text()  # Assume relevant data is on page 1
 
-        #print(f"Todo el texto es\n{text}\nAqui termina")
         data_table = []
         pattern = r"(\d+)\s([a-zA-Z-]+\s[a-zA-Z-]+(?:\s[a-zA-Z-]+){0,2})\s([a-zA-Z-]+\s[a-zA-Z-]+(?:\s[a-zA-Z-]+){0,2})\s(\d+)\s(\w+)\s(\d+\/\d+\/\d+)\s(Premium Payment)\s(\$(?:\d+,)?\d+.\d+)(\s\$?\w+)?(\s\$?\w+)?\s(\d+.\d+)\s(\(?\$(?:\d+,)?\d+.\d+\)?)"
         text_parts = re.search(r"Renewal LIFE\nCommission(.*?)Renewal Override LIFE", text, re.DOTALL)
         if text_parts:
-            #print(text_parts.group(1))
             match = re.findall(pattern,text_parts.group(1),re.DOTALL)
             for renewal_commission_results in match:
-                #print(renewal_commission_results)
                 data_table.append({
                     "Carrier": "Foresters",
                     "type" : "Renewal Commissions LIFE",
@@ -240,7 +235,6 @@ class PDFEditor:
         for i in range(1):
             data_table[i]["Converted from .pdf by"] = ""
         df = pd.DataFrame(data_table)
-        #print(df)
 
         return df, output_name
     # ------------------------------------------- ASSURITY PDF EXTRA FUNCTIONS --------------------------------------------------
@@ -254,7 +248,6 @@ class PDFEditor:
         columns = re.search(rf"{title} (.*?){endsearch}",text,re.DOTALL)
         match = re.findall(pattern,columns.group(1),re.MULTILINE)
         for pfyc in match:
-            #print(pfyc)
             lst.append({
                 "Carrier": "Assurity",
                 "Statement Date": date,     
@@ -269,7 +262,6 @@ class PDFEditor:
         columns = re.search(rf"{title}(.*?){endsearch}",text,re.DOTALL)
         match = re.findall(pattern,columns.group(1),re.MULTILINE)
         for pfyc in match:
-            #print(pfyc)
             lst.append({
                 "Carrier": "Assurity",
                 "Statement Date": date,     
@@ -394,7 +386,6 @@ class PDFEditor:
     def bcbs_la_commisions(self):
         output_name = self.pdf_output_name
         text = self.extract_text()
-        #print(text)
         date = re.search(r"Activity Ending Date: (\d+\/\d+\/\d+)",text,re.DOTALL)
         date = date.group(1)
         #Info patterns
@@ -428,7 +419,6 @@ class PDFEditor:
                     "Retro": y[11],
                     "Amount": y[12], 
                 })
-                #print(y[0])
 
         for i in range(1):
             data[i]["Converted from .pdf by"] = ""
@@ -440,7 +430,6 @@ class PDFEditor:
         output_name = self.pdf_output_name
         text = self.extract_text()
         data = []
-        #print(text)
         date = re.search(r"Activity Ending Date: (\d+\/\d+\/\d+)",text,re.DOTALL)
         date = date.group(1)
         
@@ -486,7 +475,6 @@ class PDFEditor:
     def essence_file(self):
         output_name = self.pdf_output_name
         text = self.extract_text()
-        #print(text)
         
         data = []
         
@@ -638,8 +626,6 @@ class PDFEditor:
         carrier = "Providence Med Adv"
         output_name =  self.pdf_output_name
         text = self.extract_text_from_range(0)
-        test = self.extract_text_from_range(start_page=91,end_page=95)
-        print(test)
 
         # agency = re.match(r'^([a-zA-Z ]+)\n\d+',text,re.DOTALL)
         agency = re.search(r'\w+\n([a-zA-Z ]+?)\nNPN',text,re.DOTALL|re.MULTILINE)
@@ -733,53 +719,25 @@ class PDFEditor:
         agency_pattern = r'([a-zA-Z0-9 ,]+)\nFrom (\d+\/\d+\/\d+ to \d+\/\d+\/\d+)'
         match = re.search(agency_pattern,agency_text)
         agency, payment_period = match.groups()
-        # print(agency)
-        # print(payment_period)
+
         info_pattern = r'(\d+)\s+([a-zA-Z -.]+)\s+(\d+)\s+(|\w+)\s?(\d+\/\d+\/\d+)\s([0-9.,]+)\s([0-9.]+%)?\s?(\w+)?\s(\d+\/\d+\/\d+)?\s*(-?[0-9]{,5}\.?\d{,2}?)?\s*([a-zA-Z]+ [a-zA-Z]+\s|[a-zA-Z\n]+\s)?(\d{8}\s)?([-0-9.,]+)$'
         
         text = self.extract_tables_from_pdf()
         carrier = "Cincinnati Equitable"
         data = []
         x = ""
-        # print(text)
         for table in text:
-            # print(f"Table lengh is {len(table)}")
-            # print(f"La rason es indice {table[1]}")
             reason = table[1][7]
             if reason == None:
                 reason = table[1][6] if table[1][6] is not None else table[1][10]
-            # print(f"Reason is {reason}")
             info = table[6:-2]
-            # print(info)
-            # for i in info:
-            #     data.append({
-            #         "Carrier": carrier,
-            #         "Agency": agency,
-            #         "Payment Period": payment_period,
-            #         "Policy Number": i[0],
-            #         "Insured Name": i[1],
-            #         "Issue Age": i[2],
-            #         "Policy Type": i[3],
-            #         "Issue Date": i[4],
-            #         "Base": i[5],
-            #         "Rate": i[6],
-            #         reason + " " + "Reason": i[7],
-            #         reason + " " + "Date": i[8],
-            #         "Chargeback Amount": i[9],
-            #         "Producer": i[10] if not i[10].isdigit() else "", 
-            #         "Producer Code": i[10] if i[10].isdigit() else "",
-            #         "Commission Paid": i[11],
-            #     })
             for row in info:
-                # print(f"Row in info is {row}")
                 for i in row:
                     if i is None:
                         i = ""
                     x = x + " " + i
                 x = x + "\n"
-                # print(f"Convertido a string: {x}")
                 results = re.findall(info_pattern,x)
-                # print(f"Los resultados son {results}")
                 for i in results:
                     data.append({
                         "Carrier": carrier,
@@ -799,18 +757,10 @@ class PDFEditor:
                         "Producer Code": i[11],
                         "Commission Paid": i[12],
                     })
-                # x = re.search()
-                # print(x)
-            # for t in table[6]:
-            #     x = x + " " + t
-            # for row in table:
-            #     print(f"El tipo de row es {type(row)}")
-            #     print(row[1])
-            #     print(row[6])
+
         if len(data) >= 1:
             for i in range(1):
                 data[i]["Converted from .pdf by"] = ""
-        # print(data)
         df = pd.DataFrame(data)
         return df,output_name
         
@@ -819,24 +769,19 @@ class PDFEditor:
         data = []
         carrier = "Polish Falcons of America"
         text = self.extract_text(pages=1)
-        test = self.extract_text_from_range(start_page=0,end_page=1)
-        print(text)
+
         agency_pattern = r'^\d+\/\d+\/\d+.*\n\w+\s(.*)'
         match = re.search(agency_pattern,text,re.MULTILINE)
         agency = match.group(1)
-        # print(f"Agency is {match.group(1)}")
         
         text = self.extract_text_from_range(0)
         tables_pattern = r'(.*?)\s*(\w+ - [a-zA-Z ,.]+)'
         tables = re.findall(tables_pattern,text,re.DOTALL)
         
         info_pattern = r'(\w+)\s*(\d+ \(\w+\))\n(\w)\s*([0-9.,]+)\s*([0-9.]+)\s*(\d+)\s*([0-9.]+)\s*([0-9.]+)\s*(-?[0-9.]+)\s*(\d+)\s*(\w+)\s*([a-zA-Z-. ]+)\s*(-?[0-9.]+)\s*([0-9.]+)\s*(-?[0-9.]+)\s*(\d+\/\d+\/\d+)\s*(\d+\/\d+\/\d+)'
-        # print(f"Las tablas son {len(tables)}")
+
         for table in tables:
-            # print(len(table))
-            # print(f"El group uno de tables es {table[1]}")
             info = re.findall(info_pattern,table[0])
-            # print(len(info))
             for i in info:
                 data.append({
                     "Carrier": carrier,
@@ -867,9 +812,54 @@ class PDFEditor:
         if len(data) >= 1:
             for i in range(1):
                 data[i]["Converted from .pdf by"] = ""
-        # print(data)
         df = pd.DataFrame(data)
         return df,output_name
+    
+    def polish_falcons2(self):
+        output_name = self.pdf_output_name
+        carrier = "Polish Falcons of America"
+        data = []
+
+        # tables = self.extract_text_from_range(start_page=0)
+        tables = self.extract_tables_from_pdf()
+        
+        selling_agent_pattern = r'Selling Agent: (\w+) ([a-zA-Z 0-9]+)'
+        # print(f"Table is {tables}")
+        for table in tables:
+            selling_agent = re.match(selling_agent_pattern,table[2][0])
+            agent_no,agency = selling_agent.groups() 
+            info = table[3:-3]
+            for row in info:
+                # print(row)
+                data.append({
+                    "Carrier": carrier,
+                    "Agency": agency,
+                    "Policy": row[0],
+                    "Insured/Anuitant": row[1],
+                    "Plan": row[3],
+                    "Issue Date": row[2],
+                    "Mode": "",
+                    "Value": "",
+                    "Base Premium": row[5],
+                    "Age": "",
+                    "Year": row[6],
+                    "Selling Agent": agent_no,
+                    "Agent Share": "",
+                    "Payment Date": row[4],
+                    "Payment": "",
+                    "Percent": row[8],
+                    "Earned": row[9],
+                    "Advanced": row[10],
+                    "Repaid": row[11],
+                    "Paid to Agent": row[12]
+                })
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        df = pd.DataFrame(data)
+        return df,output_name
+                
+
     def kskj_Life(self):
         output_name = self.pdf_output_name
         data = []
@@ -920,13 +910,14 @@ class PDFEditor:
         if len(data) >= 1:
             for i in range(1):
                 data[i]["Converted from .pdf by"] = ""
-        # print(data)
         df = pd.DataFrame(data)
         return df,output_name        
         
         
     def save_to_excel(self, df, output_name):
         """Save DataFrame to an Excel file and return the file path."""
+        if df is None:
+            return
         output = BytesIO()
 
         # Write DataFrame to Excel file in memory
