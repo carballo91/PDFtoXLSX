@@ -853,6 +853,9 @@ class PDFEditor:
                     "Repaid": row[11],
                     "Paid to Agent": row[12]
                 })
+            data.append({
+                "Extra": agent_no + "-" + agency
+                })
         if len(data) >= 1:
             for i in range(1):
                 data[i]["Converted from .pdf by"] = ""
