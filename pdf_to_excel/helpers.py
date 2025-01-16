@@ -858,7 +858,7 @@ class PDFEditor:
                     })
             else:
                 info = [x for x in table if x[0] != "" and x[1] != ""]
-                    for row in info:
+                for row in info:
                     # print(row)
                     data.append({
                         "Carrier": carrier,
