@@ -860,6 +860,8 @@ class PDFEditor:
                     })
             else:
                 info = [x for x in table if x[0] != "" and x[1] != ""]
+                if not info:
+                    continue
                 for row in info:
                     # print(row)
                     data.append({
