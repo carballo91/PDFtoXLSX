@@ -856,32 +856,32 @@ class PDFEditor:
                         "Repaid": row[11],
                         "Paid to Agent": row[12]
                     })
-                else:
-                    info = [x for x in table if x[0] != "" and x[1] != ""]
-                        for row in info:
-                        # print(row)
-                        data.append({
-                            "Carrier": carrier,
-                            "Agency": agency,
-                            "Policy": row[0],
-                            "Insured/Anuitant": row[1],
-                            "Plan": row[3],
-                            "Issue Date": row[2],
-                            "Mode": "",
-                            "Value": "",
-                            "Base Premium": row[5],
-                            "Age": "",
-                            "Year": row[6],
-                            "Selling Agent": agent_no,
-                            "Agent Share": "",
-                            "Payment Date": row[4],
-                            "Payment": "",
-                            "Percent": row[8],
-                            "Earned": row[9],
-                            "Advanced": row[10],
-                            "Repaid": row[11],
-                            "Paid to Agent": row[12]
-                        })
+            else:
+                info = [x for x in table if x[0] != "" and x[1] != ""]
+                    for row in info:
+                    # print(row)
+                    data.append({
+                        "Carrier": carrier,
+                        "Agency": agency,
+                        "Policy": row[0],
+                        "Insured/Anuitant": row[1],
+                        "Plan": row[3],
+                        "Issue Date": row[2],
+                        "Mode": "",
+                        "Value": "",
+                        "Base Premium": row[5],
+                        "Age": "",
+                        "Year": row[6],
+                        "Selling Agent": agent_no,
+                        "Agent Share": "",
+                        "Payment Date": row[4],
+                        "Payment": "",
+                        "Percent": row[8],
+                        "Earned": row[9],
+                        "Advanced": row[10],
+                        "Repaid": row[11],
+                        "Paid to Agent": row[12]
+                    })
             data.append({
                 "Extra": agent_no + " - " + agency
                 })
