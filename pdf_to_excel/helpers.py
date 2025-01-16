@@ -828,8 +828,10 @@ class PDFEditor:
         agent_no = ""
         agency = ""
         for table in tables:
-            if len(table) > 2 and len(table[2]) == 1:
-                selling_agent = re.match(selling_agent_pattern,table[2][0])
+            if len(table) > 2 and len(table[1]) == 1 or len(table[2]) == 1:
+                selling_agent = re.match(selling_agent_pattern,table[1][0])
+                if not selling_agent:
+                    selling_agent = re.match(selling_agent_pattern,table[2][0])
                 agent_no,agency = selling_agent.groups() 
                 info = [x for x in table[3:] if x[0] != "" and x[1] != ""]
                 for row in info:
