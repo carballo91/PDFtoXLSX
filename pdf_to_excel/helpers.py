@@ -825,34 +825,63 @@ class PDFEditor:
         
         selling_agent_pattern = r'Selling Agent: (\w+) ([a-zA-Z 0-9]+)'
         # print(f"Table is {tables}")
+        agent_no = ""
+        agency = ""
         for table in tables:
-            selling_agent = re.match(selling_agent_pattern,table[2][0])
-            agent_no,agency = selling_agent.groups() 
-            info = table[3:-3]
-            for row in info:
-                # print(row)
-                data.append({
-                    "Carrier": carrier,
-                    "Agency": agency,
-                    "Policy": row[0],
-                    "Insured/Anuitant": row[1],
-                    "Plan": row[3],
-                    "Issue Date": row[2],
-                    "Mode": "",
-                    "Value": "",
-                    "Base Premium": row[5],
-                    "Age": "",
-                    "Year": row[6],
-                    "Selling Agent": agent_no,
-                    "Agent Share": "",
-                    "Payment Date": row[4],
-                    "Payment": "",
-                    "Percent": row[8],
-                    "Earned": row[9],
-                    "Advanced": row[10],
-                    "Repaid": row[11],
-                    "Paid to Agent": row[12]
-                })
+            if len(table) > 2 and len(table[2]) == 1:
+                selling_agent = re.match(selling_agent_pattern,table[2][0])
+                agent_no,agency = selling_agent.groups() 
+                info = [x for x in table[3:] if x[0] != "" and x[1] != ""]
+                for row in info:
+                    # print(row)
+                    data.append({
+                        "Carrier": carrier,
+                        "Agency": agency,
+                        "Policy": row[0],
+                        "Insured/Anuitant": row[1],
+                        "Plan": row[3],
+                        "Issue Date": row[2],
+                        "Mode": "",
+                        "Value": "",
+                        "Base Premium": row[5],
+                        "Age": "",
+                        "Year": row[6],
+                        "Selling Agent": agent_no,
+                        "Agent Share": "",
+                        "Payment Date": row[4],
+                        "Payment": "",
+                        "Percent": row[8],
+                        "Earned": row[9],
+                        "Advanced": row[10],
+                        "Repaid": row[11],
+                        "Paid to Agent": row[12]
+                    })
+                else:
+                    info = [x for x in table if x[0] != "" and x[1] != ""]
+                        for row in info:
+                        # print(row)
+                        data.append({
+                            "Carrier": carrier,
+                            "Agency": agency,
+                            "Policy": row[0],
+                            "Insured/Anuitant": row[1],
+                            "Plan": row[3],
+                            "Issue Date": row[2],
+                            "Mode": "",
+                            "Value": "",
+                            "Base Premium": row[5],
+                            "Age": "",
+                            "Year": row[6],
+                            "Selling Agent": agent_no,
+                            "Agent Share": "",
+                            "Payment Date": row[4],
+                            "Payment": "",
+                            "Percent": row[8],
+                            "Earned": row[9],
+                            "Advanced": row[10],
+                            "Repaid": row[11],
+                            "Paid to Agent": row[12]
+                        })
             data.append({
                 "Extra": agent_no + " - " + agency
                 })
