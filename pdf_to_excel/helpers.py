@@ -825,34 +825,80 @@ class PDFEditor:
         
         selling_agent_pattern = r'Selling Agent: (\w+) ([a-zA-Z 0-9]+)'
         # print(f"Table is {tables}")
+        agent_no = ""
+        agency = ""
+        agent_count = 0
         for table in tables:
-            selling_agent = re.match(selling_agent_pattern,table[2][0])
-            agent_no,agency = selling_agent.groups() 
-            info = table[3:-3]
-            for row in info:
-                # print(row)
-                data.append({
-                    "Carrier": carrier,
-                    "Agency": agency,
-                    "Policy": row[0],
-                    "Insured/Anuitant": row[1],
-                    "Plan": row[3],
-                    "Issue Date": row[2],
-                    "Mode": "",
-                    "Value": "",
-                    "Base Premium": row[5],
-                    "Age": "",
-                    "Year": row[6],
-                    "Selling Agent": agent_no,
-                    "Agent Share": "",
-                    "Payment Date": row[4],
-                    "Payment": "",
-                    "Percent": row[8],
-                    "Earned": row[9],
-                    "Advanced": row[10],
-                    "Repaid": row[11],
-                    "Paid to Agent": row[12]
-                })
+            if len(table) > 2:
+                if "Selling Agent" in table[1][0] or "Selling Agent" in table[2][0]:
+                    if agent_count != 0:
+                        data.append({
+                        "Extra": agent_no + " - " + agency
+                        })
+                    
+                    selling_agent = re.match(selling_agent_pattern,table[1][0])
+                    if selling_agent is None:
+                        selling_agent = re.match(selling_agent_pattern,table[2][0])
+                    agent_no,agency = selling_agent.groups() 
+                    info = [x for x in table[2:] if x[0] and x[1]]
+                    for row in info:
+                        # print(row)
+                        data.append({
+                            "Carrier": carrier,
+                            "Agency": agency,
+                            "Policy": row[0],
+                            "Insured/Anuitant": row[1],
+                            "Plan": row[3],
+                            "Issue Date": row[2],
+                            "Mode": "",
+                            "Value": "",
+                            "Base Premium": row[5],
+                            "Age": "",
+                            "Year": row[6],
+                            "Selling Agent": agent_no,
+                            "Agent Share": "",
+                            "Payment Date": row[4],
+                            "Payment": "",
+                            "Percent": row[8],
+                            "Earned": row[9],
+                            "Advanced": row[10],
+                            "Repaid": row[11],
+                            "Paid to Agent": row[12]
+                        })
+                    agent_count += 1
+                else:
+                    info = [x for x in table if x[0] and x[1]]
+                    if not info:
+                        continue
+                    for row in info:
+                        # print(row)
+                        data.append({
+                            "Carrier": carrier,
+                            "Agency": agency,
+                            "Policy": row[0],
+                            "Insured/Anuitant": row[1],
+                            "Plan": row[3],
+                            "Issue Date": row[2],
+                            "Mode": "",
+                            "Value": "",
+                            "Base Premium": row[5],
+                            "Age": "",
+                            "Year": row[6],
+                            "Selling Agent": agent_no,
+                            "Agent Share": "",
+                            "Payment Date": row[4],
+                            "Payment": "",
+                            "Percent": row[8],
+                            "Earned": row[9],
+                            "Advanced": row[10],
+                            "Repaid": row[11],
+                            "Paid to Agent": row[12]
+                        })
+            
+        data.append({
+                        "Extra": agent_no + " - " + agency
+                        })
+              
         if len(data) >= 1:
             for i in range(1):
                 data[i]["Converted from .pdf by"] = ""
