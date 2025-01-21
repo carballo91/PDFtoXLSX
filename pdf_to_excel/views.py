@@ -59,7 +59,7 @@ def upload_pdf(request):
                     df, output_name = pdf_editor.bcbs_la_compensation()
                 elif "Member ID Writing ID Name Product State Date Term Date Term Code Period Type Retro Amount" in first_page_text:
                     df, output_name = pdf_editor.essence_file()
-                elif "Blue Shield of California" in first_page_text: 
+                elif "Blue Shield of California" in first_page_text or "Group Number Subscriber ID Customer Name Product Eff Date Period Gross Premium Base Premium* Rate Commission Paid" in first_page_text: 
                     df,output_name = pdf_editor.blueshield_of_california()
                 elif "Member ID Name Line of BusinessProduct MBI Effective Term Date Signed Date Period Cycle Retro ?Commissio" in first_page_text:
                     df,output_name = pdf_editor.providence()
