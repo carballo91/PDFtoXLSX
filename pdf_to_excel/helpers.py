@@ -539,82 +539,115 @@ class PDFEditor:
         
         table_pattern = r'Blue Shield of California(.+?)Total \$' 
         tables = re.findall(table_pattern,text,re.DOTALL)
-        
-        for i in range(len(tables)):
-            info = re.findall(pattern,tables[i], re.DOTALL)
-            info2 = re.findall(pattern2,tables[i],re.DOTALL)
-            info3 = re.findall(pattern3,tables[i],re.DOTALL)
-            producer_info = re.search(producer_info_pattern,tables[i])
-            commission_info = re.findall(commission_pattern,tables[i],re.DOTALL)
-            if info:
-                for row in info:
-                    data.append({
-                        "Carrier" : carrier,
-                        "Statement Date" : date.group(1),
-                        "Writing Producer ID" : producer_info.group(1),
-                        "Producer NPN": producer_info.group(3),
-                        "Producer Name": producer_info.group(2),
-                        "Group Number": row[1],
-                        "Subscriber ID": row[2],
-                        "Customer Name": row[0] + ", " + row[-1],
-                        "Product": row[3],
-                        "Effective Date": row[4],
-                        "Term Date": "",
-                        "Period": row[5],
-                        "Gross Premium": row[6],
-                        "Base Premium": row[7],
-                        "Commission Rate": row[8],
-                        "Cycle Year": "",
-                        "Commission Paid": row[9],
-                        "Commission Type": commission_info[0].strip("\n"),
-                    })
-            if info2:
-                for row in info2:
-                    data.append({
-                        "Carrier" : carrier,
-                        "Statement Date" : date.group(1),
-                        "Writing Producer ID" : producer_info.group(1),
-                        "Producer NPN": producer_info.group(3),
-                        "Producer Name": producer_info.group(2),
-                        "Group Number": row[0],
-                        "Subscriber ID": row[1],
-                        "Customer Name": row[2],
-                        "Product": row[3],
-                        "Effective Date": row[4],
-                        "Term Date": "",
-                        "Period": row[5],
-                        "Gross Premium": row[6],
-                        "Base Premium": row[7],
-                        "Commission Rate": row[8],
-                        "Cycle Year": "",
-                        "Commission Paid": row[9],
-                        "Commission Type": commission_info[0].strip("\n"),
-                    })
-            if info3:
-                other_commission_match = re.search(r"Commission Paid(.*)",tables[i],re.DOTALL)
-                
-                other_commission = re.findall(pattern3,other_commission_match.group(1),re.DOTALL)
-                for row in other_commission:
-                    data.append({
-                        "Carrier" : carrier,
-                        "Statement Date" : date.group(1),
-                        "Writing Producer ID" : producer_info.group(1),
-                        "Producer NPN": producer_info.group(3),
-                        "Producer Name": producer_info.group(2),
-                        "Group Number": "",
-                        "Subscriber ID": row[1],
-                        "Customer Name": row[2],
-                        "Product": row[0] + " " + row[-1],
-                        "Effective Date": row[3],
-                        "Term Date": row[4],
-                        "Period": row[5],
-                        "Gross Premium": "",
-                        "Base Premium": "",
-                        "Commission Rate": "",
-                        "Cycle Year": row[6],
-                        "Commission Paid": row[7].strip("\n"),
-                        "Commission Type": commission_info[0].strip("\n"),
-                    })
+
+        if tables:
+            for i in range(len(tables)):
+                info = re.findall(pattern,tables[i], re.DOTALL)
+                info2 = re.findall(pattern2,tables[i],re.DOTALL)
+                info3 = re.findall(pattern3,tables[i],re.DOTALL)
+
+                producer_info = re.search(producer_info_pattern,tables[i])
+                commission_info = re.findall(commission_pattern,tables[i],re.DOTALL)
+                if info:
+                    for row in info:
+                        data.append({
+                            "Carrier" : carrier,
+                            "Statement Date" : date.group(1),
+                            "Writing Producer ID" : producer_info.group(1),
+                            "Producer NPN": producer_info.group(3),
+                            "Producer Name": producer_info.group(2),
+                            "Group Number": row[1],
+                            "Subscriber ID": row[2],
+                            "Customer Name": row[0] + ", " + row[-1],
+                            "Product": row[3],
+                            "Effective Date": row[4],
+                            "Term Date": "",
+                            "Period": row[5],
+                            "Gross Premium": row[6],
+                            "Base Premium": row[7],
+                            "Commission Rate": row[8],
+                            "Cycle Year": "",
+                            "Commission Paid": row[9],
+                            "Commission Type": commission_info[0].strip("\n"),
+                        })
+                if info2:
+                    for row in info2:
+                        data.append({
+                            "Carrier" : carrier,
+                            "Statement Date" : date.group(1),
+                            "Writing Producer ID" : producer_info.group(1),
+                            "Producer NPN": producer_info.group(3),
+                            "Producer Name": producer_info.group(2),
+                            "Group Number": row[0],
+                            "Subscriber ID": row[1],
+                            "Customer Name": row[2],
+                            "Product": row[3],
+                            "Effective Date": row[4],
+                            "Term Date": "",
+                            "Period": row[5],
+                            "Gross Premium": row[6],
+                            "Base Premium": row[7],
+                            "Commission Rate": row[8],
+                            "Cycle Year": "",
+                            "Commission Paid": row[9],
+                            "Commission Type": commission_info[0].strip("\n"),
+                        })
+                if info3:
+                    other_commission_match = re.search(r"Commission Paid(.*)",tables[i],re.DOTALL)
+                    
+                    other_commission = re.findall(pattern3,other_commission_match.group(1),re.DOTALL)
+                    for row in other_commission:
+                        data.append({
+                            "Carrier" : carrier,
+                            "Statement Date" : date.group(1),
+                            "Writing Producer ID" : producer_info.group(1),
+                            "Producer NPN": producer_info.group(3),
+                            "Producer Name": producer_info.group(2),
+                            "Group Number": "",
+                            "Subscriber ID": row[1],
+                            "Customer Name": row[2],
+                            "Product": row[0] + " " + row[-1],
+                            "Effective Date": row[3],
+                            "Term Date": row[4],
+                            "Period": row[5],
+                            "Gross Premium": "",
+                            "Base Premium": "",
+                            "Commission Rate": "",
+                            "Cycle Year": row[6],
+                            "Commission Paid": row[7].strip("\n"),
+                            "Commission Type": commission_info[0].strip("\n"),
+                        })
+        else:
+            tables = self.extract_tables_from_pdf()
+            for table in tables:
+                if len(table) == 2 and len(table[0]) != 10:
+                    commission_type = table[0][0]
+                    producer_id, producer_name = table[1][1], table[1][2]
+                else:
+                    rows = table[1:]
+                    for row in rows:
+                        data.append({
+                            "Carrier" : carrier,
+                            "Statement Date" : date.group(1),
+                            "Writing Producer ID" : producer_id,
+                            "Producer NPN": "",
+                            "Producer Name": producer_name,
+                            "Group Number": row[0],
+                            "Subscriber ID": row[1],
+                            "Customer Name": row[2],
+                            "Product": row[3],
+                            "Effective Date": row[4],
+                            "Term Date": "",
+                            "Period": row[5],
+                            "Gross Premium": row[6],
+                            "Base Premium": row[7],
+                            "Commission Rate": row[8],
+                            "Cycle Year": "",
+                            "Commission Paid": row[9],
+                            "Commission Type": commission_type,
+                        })
+                        
+            
         for i in range(1):
             data[i]["Converted from .pdf by"] = ""
         
