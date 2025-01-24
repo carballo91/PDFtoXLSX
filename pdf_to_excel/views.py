@@ -71,6 +71,8 @@ def upload_pdf(request):
                     df,output_name = pdf_editor.kskj_Life()
                 elif "PFA Financial Life" in first_page_text:
                     df,output_name = pdf_editor.polish_falcons2()
+                elif "DATE PAYEE AGENT PAYEE MEMBER MEMBER AGENT PRODUCT TRANSACTION AMOUNT PAYOUT CREDIT DEBIT" in first_page_text:
+                    df,output_name = pdf_editor.USAHealth()
                 # Add other conditions as needed...
                 # if df is None:
                 #     print(f"Df is none {output_name}")
