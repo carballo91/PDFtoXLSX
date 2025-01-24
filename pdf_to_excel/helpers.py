@@ -990,8 +990,65 @@ class PDFEditor:
             for i in range(1):
                 data[i]["Converted from .pdf by"] = ""
         df = pd.DataFrame(data)
+        return df,output_name
+    
+    def USAHealth(self):
+        output_name = self.pdf_output_name
+        data = []
+        tables = self.extract_tables_from_pdf()     
+        for table in tables:
+            for row in table:
+                if row[0] != "DATE":
+                    name,policy_no = row[2].split(" |")
+                    agent_name,agent_no = row[3].split("\n(")
+                    agent_no = agent_no.strip(")")
+                    data.append({
+                        "Date":row[0],
+                        "TypeID": "",
+                        "Carrier": "USA Health Plans",
+                        "FMO": "",
+                        "Age": "",
+                        "Agency": row[1].split("\n(")[0],
+                        "Applied to Advance": "",
+                        "Chargeback Amount": "",
+                        "Client First": "",
+                        "Client Full Name": name,
+                        "Client Last": "",
+                        "CMS Payment Type": "",
+                        "Code": "",
+                        "Commission Amount": row[7],
+                        "Cycle Year": "",
+                        "Date Due": "",
+                        "Description": row[5],
+                        "Document Type": "",
+                        "Duration": "",
+                        "Effective Date": "",
+                        "Line of Business": "",
+                        "Mode": "",
+                        "Months": "",
+                        "Override": "",
+                        "Plan": "",
+                        "Policy No": policy_no,
+                        "Premium": "",
+                        "Product": row[4],
+                        "Rate": "",
+                        "Retro": "",
+                        "Signed Date": "",
+                        "Split": "",
+                        "State": "",
+                        "Termination Date": "",
+                        "Termination Reason": "",
+                        "Value": "",
+                        "Writing Agent": agent_name,
+                        "Writing Agent NPN": "",
+                        "Writing Agent Number": agent_no,
+                    })
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        df = pd.DataFrame(data)
         return df,output_name        
-        
+
         
     def save_to_excel(self, df, output_name):
         """Save DataFrame to an Excel file and return the file path."""
