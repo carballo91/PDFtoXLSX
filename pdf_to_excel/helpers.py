@@ -1147,7 +1147,7 @@ class PDFEditor:
                 data.append({
                         "Date":date,
                         "TypeID": "",
-                        "Carrier": "Family Benefits Life",
+                        "Carrier": "Family Benefit Life",
                         "FMO": "",
                         "Age": column[3],
                         "Agency": agency,
@@ -1194,7 +1194,7 @@ class PDFEditor:
     
     def save_to_excel(self, df, output_name):
         """Save DataFrame to an Excel file and return the file path."""
-        if df is None:
+        if df is None or df.empty:
             return
         output = BytesIO()
 
