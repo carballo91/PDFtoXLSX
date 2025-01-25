@@ -3,7 +3,7 @@ import re
 import pandas as pd
 from io import BytesIO
 import pdfplumber
-# import time
+import time
 import fitz
 
 class PDFEditor:
@@ -13,7 +13,8 @@ class PDFEditor:
 
     def is_valid_pdf(self):
         """Check if the uploaded file is a valid PDF."""
-        return self.pdf_file.name.endswith(".pdf")
+        # print(self.pdf_file.name.lower().endswith(".pdf"))
+        return self.pdf_file.name.lower().endswith(".pdf")
 
     
     def extract_page_text(self, pdf_path, page_num):
@@ -1049,7 +1050,148 @@ class PDFEditor:
         df = pd.DataFrame(data)
         return df,output_name        
 
+    
+    def bcbs(self):
+        states = {
+            "Illinois": "IL",
+            "Montana": "MT",
+            "New Mexico": "NM",
+            "Oklahoma": "OK",
+            "Texas": "TX",
+        }
+        output_name = self.pdf_output_name
+        data = []
+
+        text = self.extract_text(start=2)
         
+        period_ending_pattern = r'For Period Ending: ([a-zA-Z]+ [0-9]{,2},? [0-9]{4})'
+        state_pattern = r'State: ([a-zA-Z]+)'
+        producer_pattern = r'([0-9]+)-\w+-([a-zA-Z0-9 ]+)'
+        producers_pattern = r'Producer\/Sub-Producer: (.*)Totals for GA\/Producer'
+           
+        try:
+            producers = re.findall(producers_pattern,text,re.DOTALL)
+            period_ending = re.search(period_ending_pattern,text).group(1)
+            state = re.search(state_pattern,text).group(1)
+        except AttributeError:
+            return
+               
+        try:
+            state_initials = states[state]
+        except KeyError:
+            state_initials = ""
+        
+        carrier = f"BCBS {state_initials}"
+        
+        for producer in producers:
+            producer_info = re.search(producer_pattern,producer)
+            producer_no = producer_info.group(1)
+            producer_name = producer_info.group(2)
+            producer_tables = re.findall(r'^Individual (.*?)Totals for Individual',producer,re.MULTILINE | re.DOTALL)
+            
+            for table in producer_tables:
+                commission_type = re.search(r'([a-zA-Z0-9 ]+)\nSource ID',table).group(1)
+                rows = re.findall(r'([0-9]+) ?([a-zA-Z, ]+) (\d+\/\d+\/\d+) ?(\d+\/\d+\/\d+ )?([a-zA-Z\/\$\%_ ]+) (\d+ )?([0-9.]+) (\d+) ([0-9]{2}\/[0-9]{2}\/[0-9]{2}) ?([0-9.]+ )?([0-9.\$\%]+)?\n(\w+) (\w+¬?) ([0-9]{2}\/[0-9]{2}\/[0-9]{2}) (\w+) ([0-9]{2}\/[0-9]{2}\/[0-9]{2}) ([0-9.]+) ([0-9.]+ )?([0-9.]+)',table,re.DOTALL|re.MULTILINE)
+                for column in rows:
+                    data.append({
+                        "Period Ending": period_ending,
+                        "Carrier": carrier,
+                        "Producer/Sub-Producer": producer_name,
+                        "Producer No": producer_no,
+                        "Type": commission_type,
+                        "Acct/Policy": column[0],
+                        "Group No": column[11],
+                        "Acct/Pol Name": column[1],
+                        "Product Name": column[12],
+                        "Orig Eff Dt": column[2],
+                        "PR Eff Dt": column[13],
+                        "Cancel Dt": column[3],
+                        "Calc Method": column[4],
+                        "Funding Type": column[14],
+                        "Contracts": column[5],
+                        "Split %": column[6],
+                        "Pol Mos": column[7],
+                        "Pd From Dt": column[8],
+                        "Pd To Dt": column[15],
+                        "Premium Applied": column[9],
+                        "Comm Rate": column[10],
+                        "Comm Amt": column[16],
+                        "YTD Premium": column[17],
+                        "YTD Commission": column[18]
+                    })
+
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        df = pd.DataFrame(data)
+        return df,output_name   
+        
+    def family_benefit_life(self):
+        output_name = self.pdf_output_name
+        data = []
+        text = self.extract_text()
+       
+        date_pattern = r'THRU ([a-zA-Z0-9 ,]+)'
+        producers_pattern = 'PRODUCED BY (.*?)ENDING BALANCE'
+        writing_agent_pattern = r'^([a-zA-Z -]+)$'
+        agency_pattern = r'NAME AGENT NUMBER STATUS\n(.*) \w+ \d+'
+        
+        date = re.search(date_pattern,text).group(1)
+        agency = re.search(agency_pattern,text).group(1)
+        producers = re.findall(producers_pattern,text,re.DOTALL|re.MULTILINE)
+        
+        for producer in producers:
+            writing_agent = re.match(writing_agent_pattern,producer,re.MULTILINE).group(1)
+            rows = re.findall(r'(\w+) ([a-zA-z- .]+) ([A-Z]{,2}) ([0-9]{,3}) (?:[0-9]+ )?(?:\d+\/\d+) (\d+\/\d+) ([0-9]+ )?(1?[0-9]{,2}.[0-9]{2} )?([0-9.,-]+) (1?[0-9]{,2}.[0-9-]+ )?(?:[0-9.,]+ )?(?:[0-9.,]+ )?([0-9.-]+)',producer,re.DOTALL|re.MULTILINE)
+            for column in rows:
+                data.append({
+                        "Date":date,
+                        "TypeID": "",
+                        "Carrier": "Family Benefits Life",
+                        "FMO": "",
+                        "Age": column[3],
+                        "Agency": agency,
+                        "Applied to Advance": column[8],
+                        "Chargeback Amount": "",
+                        "Client First": "",
+                        "Client Full Name": column[1],
+                        "Client Last": "",
+                        "CMS Payment Type": "",
+                        "Code": "",
+                        "Commission Amount": column[9],
+                        "Cycle Year": "",
+                        "Date Due": "",
+                        "Description": "",
+                        "Document Type": "",
+                        "Duration": column[5],
+                        "Effective Date": column[4],
+                        "Line of Business": "",
+                        "Mode": column[2],
+                        "Months": "",
+                        "Override": "",
+                        "Plan": "",
+                        "Policy No": column[0],
+                        "Premium": column[7],
+                        "Product": "",
+                        "Rate": column[6],
+                        "Retro": "",
+                        "Signed Date": "",
+                        "Split": "",
+                        "State": "",
+                        "Termination Date": "",
+                        "Termination Reason": "",
+                        "Value": "",
+                        "Writing Agent": writing_agent,
+                        "Writing Agent NPN": "",
+                        "Writing Agent Number": "",
+                })
+        
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        df = pd.DataFrame(data)
+        return df,output_name  
+    
     def save_to_excel(self, df, output_name):
         """Save DataFrame to an Excel file and return the file path."""
         if df is None:
