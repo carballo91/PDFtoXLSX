@@ -73,6 +73,10 @@ def upload_pdf(request):
                     df,output_name = pdf_editor.polish_falcons2()
                 elif "DATE PAYEE AGENT PAYEE MEMBER MEMBER AGENT PRODUCT TRANSACTION AMOUNT PAYOUT CREDIT DEBIT" in first_page_text:
                     df,output_name = pdf_editor.USAHealth()
+                elif "Divisions of Health Care Service Corporation, a Mutual Legal Reserve Company, an Independent Licensee of the Blue Cross and Blue Shield Association" in first_page_text:
+                    df,output_name = pdf_editor.bcbs()
+                elif "NUMBER INSURED MD AGE PRD LV PAID DATE YR RATE PREMIUM COMMISSION PAID REMAINING NET" in first_page_text:
+                    df,output_name = pdf_editor.family_benefit_life()
                 # Add other conditions as needed...
                 # if df is None:
                 #     print(f"Df is none {output_name}")
