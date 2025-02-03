@@ -77,6 +77,8 @@ def upload_pdf(request):
                     df,output_name = pdf_editor.bcbs()
                 elif "NUMBER INSURED MD AGE PRD LV PAID DATE YR RATE PREMIUM COMMISSION PAID REMAINING NET" in first_page_text:
                     df,output_name = pdf_editor.family_benefit_life()
+                elif "Broker # Referral(s) Commission Adjustment(s)" in first_page_text:
+                    df,output_name = pdf_editor.river_health()
                 # Add other conditions as needed...
                 # if df is None:
                 #     print(f"Df is none {output_name}")
