@@ -1206,8 +1206,6 @@ class PDFEditor:
         
         producers_pattern = r'([a-zA-Z ]+) \d+ ([a-zA-Z0-9 +]+) (\$ \d+.\d+)\s?(\$ \d+.\d+)?'
         
-        
-        print(statement_date)
         for table in tables:
             rows = re.findall(producers_pattern,table,re.DOTALL|re.MULTILINE)
             for column in rows:
