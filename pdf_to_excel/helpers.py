@@ -1192,6 +1192,115 @@ class PDFEditor:
         df = pd.DataFrame(data)
         return df,output_name  
     
+    def river_health(self):
+        output_name = self.pdf_output_name
+        data = []
+        carrier = "River Health"
+        text = self.extract_text()
+        
+        statement_date_pattern = r'Statement Date (\d+\/\d+\/\d+)' 
+        statement_date = re.search(statement_date_pattern,text).group(1)
+        
+        tables_pattern = r'Adjustment\(s\)(.+)Total Commission'
+        tables = re.findall(tables_pattern,text,re.DOTALL)
+        
+        producers_pattern = r'([a-zA-Z ]+) \d+ ([a-zA-Z0-9 +]+) (\$ \d+.\d+)\s?(\$ \d+.\d+)?'
+        
+        
+        print(statement_date)
+        for table in tables:
+            rows = re.findall(producers_pattern,table,re.DOTALL|re.MULTILINE)
+            for column in rows:
+                data.append({
+                        "Date":statement_date,
+                        "TypeID": "",
+                        "Carrier": carrier,
+                        "FMO": "",
+                        "Age": "",
+                        "Agency": "",
+                        "Applied to Advance": "",
+                        "Chargeback Amount": "",
+                        "Client First": "",
+                        "Client Full Name": column[1],
+                        "Client Last": "",
+                        "CMS Payment Type": "",
+                        "Code": "",
+                        "Commission Amount": column[2],
+                        "Cycle Year": "",
+                        "Date Due": "",
+                        "Description": "",
+                        "Document Type": "",
+                        "Duration": "",
+                        "Effective Date": "",
+                        "Line of Business": "",
+                        "Mode": "",
+                        "Months": "",
+                        "Override": "",
+                        "Plan": "",
+                        "Policy No": "",
+                        "Premium": "",
+                        "Product": "",
+                        "Rate": "",
+                        "Retro": "",
+                        "Signed Date": "",
+                        "Split": "",
+                        "State": "",
+                        "Termination Date": "",
+                        "Termination Reason": "",
+                        "Value": "",
+                        "Writing Agent": column[0],
+                        "Writing Agent NPN": "",
+                        "Writing Agent Number": "",
+                })
+                if column[3]:
+                    data.append({
+                        "Date":statement_date,
+                        "TypeID": "",
+                        "Carrier": carrier,
+                        "FMO": "",
+                        "Age": "",
+                        "Agency": "",
+                        "Applied to Advance": "",
+                        "Chargeback Amount": "",
+                        "Client First": "",
+                        "Client Full Name": column[1],
+                        "Client Last": "",
+                        "CMS Payment Type": "",
+                        "Code": "",
+                        "Commission Amount": column[3],
+                        "Cycle Year": "",
+                        "Date Due": "",
+                        "Description": "",
+                        "Document Type": "",
+                        "Duration": "",
+                        "Effective Date": "",
+                        "Line of Business": "",
+                        "Mode": "",
+                        "Months": "",
+                        "Override": "",
+                        "Plan": "",
+                        "Policy No": "",
+                        "Premium": "",
+                        "Product": "",
+                        "Rate": "",
+                        "Retro": "",
+                        "Signed Date": "",
+                        "Split": "",
+                        "State": "",
+                        "Termination Date": "",
+                        "Termination Reason": "",
+                        "Value": "",
+                        "Writing Agent": column[0],
+                        "Writing Agent NPN": "",
+                        "Writing Agent Number": "",
+                })
+                    
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        df = pd.DataFrame(data)
+        return df,output_name          
+        
     def save_to_excel(self, df, output_name):
         """Save DataFrame to an Excel file and return the file path."""
         if df is None or df.empty:
