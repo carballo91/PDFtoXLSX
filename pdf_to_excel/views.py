@@ -34,8 +34,9 @@ def upload_pdf(request):
                 except IndexError:
                     first_page_text = pdf_editor.extract_text(pages=1)
                 decoded = pdf_editor.processText(first_page_text)
-                # print(first_page_text)
+                print(first_page_text)
                 #print(first_page_text)
+                
                 df = None
                 output_name = ""
                 # print(first_page_text)
@@ -79,6 +80,10 @@ def upload_pdf(request):
                     df,output_name = pdf_editor.family_benefit_life()
                 elif "Broker # Referral(s) Commission Adjustment(s)" in first_page_text:
                     df,output_name = pdf_editor.river_health()
+                elif "Month Subscribers Schedule Premium Paid Commission" in first_page_text:
+                    df,output_name = pdf_editor.kaiser_permanente()
+                elif "Delta Dental of Colorado" in first_page_text:
+                    df,output_name = pdf_editor.delta_dental_colorado()
                 # Add other conditions as needed...
                 # if df is None:
                 #     print(f"Df is none {output_name}")
