@@ -10,7 +10,23 @@ class PDFEditor:
     def __init__(self, pdf_file):
         self.pdf_file = pdf_file
         self.pdf_output_name = pdf_file.name.rstrip(".pdf")
+        
+    def rotate_pdf(self, rotation=0):
+        self.pdf_file.seek(0)
+        pdf_bytes = self.pdf_file.read()  # Read the uploaded file as bytes
+        doc = fitz.open("pdf", pdf_bytes)  # Open from bytes
+        
+        for page in doc:
+            if page.rotation != 0:
+                page.set_rotation(rotation)  # Rotate each page
 
+        # Save the rotated PDF into a byte stream and return it
+        output_stream = BytesIO()
+        doc.save(output_stream)
+        doc.close()
+        output_stream.seek(0)  # Move cursor to the beginning
+        return output_stream
+    
     def is_valid_pdf(self):
         """Check if the uploaded file is a valid PDF."""
         # print(self.pdf_file.name.lower().endswith(".pdf"))
@@ -39,6 +55,24 @@ class PDFEditor:
 
         # Join extracted text from all pages.
         return "\n".join(text_list)
+    
+    def extract_text_delta(self,text,start=0, pages=None):
+        """Extract text from specified pages or all pages in the PDF sequentially."""
+        
+        with pdfplumber.open(text) as pdf:
+            if pages is None:
+                pages = range(start,len(pdf.pages))
+            else:
+                pages = range(pages)
+            text_list = []
+            for page_num in pages:
+                page_text = self.extract_page_text(text, page_num)
+                text_list.append(page_text)
+                # gc.collect()  # Optional: Call garbage collection after each page extraction
+
+        # Join extracted text from all pages.
+        return "\n".join(text_list)
+    
     #Used for proccess pdf type1
     def extract_large_table(self,start_page, agent_table_number):
         full_table = []
@@ -1297,8 +1331,173 @@ class PDFEditor:
             for i in range(1):
                 data[i]["Converted from .pdf by"] = ""
         df = pd.DataFrame(data)
-        return df,output_name          
+        return df,output_name   
+    
+    def kaiser_permanente(self):
+        output_name = self.pdf_output_name
+        text = self.extract_text()
+        data = []
         
+        agency_pattern = 'Commission Month: [a-zA-Z0-9\/ -]+\n(.*?)Total'
+        agency = re.search(agency_pattern,text,re.DOTALL).group(1)
+        
+        vendor_pattern = 'Vendor # (\w+)'
+        vendor = re.search(vendor_pattern,text,re.DOTALL|re.MULTILINE).group(1)
+        
+        vendorID_pattern = 'Vendor ID (\w+)'
+        vendorID = re.search(vendorID_pattern,text,re.DOTALL|re.MULTILINE).group(1)
+        
+        date_pattern = 'Commission Month: ([0-9\/ -]+)'
+        date = re.search(date_pattern,text,re.DOTALL|re.MULTILINE).group(1)
+        
+        subscribers_pattern = 'Paid Commission(.*?)Totals'
+        subscribers_table = re.findall(subscribers_pattern,text,re.DOTALL|re.MULTILINE)
+        
+        kpif_pattern = r'KPIF(.*?)KPIF Members'
+        kpif_table = re.findall(kpif_pattern,text,re.DOTALL|re.MULTILINE)
+        
+        agent_pattern = r'([a-zA-Z0-9, ]+) \((\w+)\)'
+        subscribers_list_pattern = r'(\d+) ([a-zA-Z0-9 &-]+) ([a-zA-Z]{2,4}) ([0-9]{,4}) (\$\d+.\d+) (\$\d?,?\d+.\d+) (\d+%) (\$\d?,?\d+.\d+)\n([a-zA-Z ]+)?'
+        for subscribers in subscribers_table:
+            # print(subscriber)
+            agent, agent_id = re.search(agent_pattern,subscribers,re.DOTALL|re.MULTILINE).groups()
+            print(agent)
+            print(agent_id)
+            subscribers_list = re.findall(subscribers_list_pattern,subscribers,re.DOTALL|re.MULTILINE)
+            for subscriber in subscribers_list:
+                data.append({
+                    "Carrier": "Kaiser Permanente Colorado",
+                    "Agency": agency,
+                    "Vendor #": vendor,
+                    "AP Vendor ID": vendorID,
+                    "Commission Month": date,
+                    "Agent Name": agent,
+                    "Agent ID": agent_id,
+                    "Policy Number":subscriber[0],
+                    "Client Name": subscriber[1] + " " + subscriber[8] if "For questions" not in subscriber[8] and subscriber[8] != "" else subscriber[1],
+                    "Renewal Month": subscriber[2],
+                    "Subscribers": subscriber[3],
+                    "Amount from PSPM Schedule": subscriber[4],
+                    "Payment Received Date": "",
+                    "Premium": subscriber[5],
+                    "%Dues Paid": subscriber[6],
+                    "Commission": subscriber[7],
+                    "Rate": "",
+                    "Commission Last Paid": "",
+                    "Total Commission": "",
+                })
+                
+        for subscribers in kpif_table: 
+            subscribers_list_pattern = r'([a-zA-Z0-9, ]+ \(\w+\).+)'
+
+            subscribers_list = re.search(subscribers_list_pattern, subscribers,re.DOTALL|re.MULTILINE).group(1)
+
+            header_pattern = re.compile(r"^[A-Za-z]+,[A-Za-z ]+ \(\w+\)$")
+
+            blocks = []
+            current_block = []
+
+            for line in subscribers_list.split("\n"):
+                if header_pattern.match(line):
+                    # If we already have a block, save it before starting a new one
+                    if current_block:
+                        blocks.append("\n".join(current_block))
+                        current_block = []
+                # Always add the line to the current block
+                current_block.append(line)
+
+            # Add the last collected block
+            if current_block:
+                blocks.append("\n".join(current_block))
+        kpif_member_pattern = r'([a-zA-Z, ]+) (\d+\/\d+\/\d+ )?(\$\d?,?\d+.\d+ )?(\d?,?\d+.\d+ % )?(\$\d?,?\d+.\d+ )?(\d+\/\d+\/\d+) (\$\d?,?\d+.\d+)'
+        for table in blocks:
+            # print(table)
+            agent, agent_id = re.search(agent_pattern,table,re.DOTALL|re.MULTILINE).groups()
+            subscribers = re.findall(kpif_member_pattern,table,re.DOTALL|re.MULTILINE)
+            for i in range(len(subscribers)):
+                data.append({
+                    "Carrier": "Kaiser Permanente Colorado",
+                    "Agency": agency,
+                    "Vendor #": vendor,
+                    "AP Vendor ID": vendorID,
+                    "Commission Month": date,
+                    "Agent Name": agent,
+                    "Agent ID": agent_id,
+                    "Policy Number":"",
+                    "Client Name": subscribers[i][0],
+                    "Renewal Month": "",
+                    "Subscribers": "",
+                    "Amount from PSPM Schedule": "",
+                    "Payment Received Date": subscribers[i][1] if subscribers[i][1] != "" else next(
+                        (subscribers[j][1] for j in range(i - 1, -1, -1) if subscribers[j][1] != ""), ""
+                    ),
+                    "Premium": subscribers[i][2] if subscribers[i][2] != "" else next(
+                        (subscribers[j][2] for j in range(i - 1, -1, -1) if subscribers[j][2] != ""), ""
+                    ),
+                    "%Dues Paid": subscribers[i][3] if subscribers[i][3] != "" else next(
+                        (subscribers[j][3] for j in range(i - 1, -1, -1) if subscribers[j][3] != ""), ""
+                    ),
+                    "Commission": "",
+                    "Rate": subscribers[i][4] if subscribers[i][4] != "" else next(
+                        (subscribers[j][4] for j in range(i - 1, -1, -1) if subscribers[j][4] != ""), ""
+                    ),
+                    "Commission Last Paid": subscribers[i][5],
+                    "Total Commission": subscribers[i][6],
+                })
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        df = pd.DataFrame(data)
+        return df,output_name  
+            
+    def delta_dental_colorado(self):
+        output_name = self.pdf_output_name
+        carrier = "Delta Dental of Colorado"
+        data = []
+        text = self.rotate_pdf()
+        # text = self.extract_text(start=1)
+        full_text = self.extract_text_delta(text=text)
+        # print(full_text)
+        date_pattern = r'Billing Period: ([0-9\/ -]+)'
+        date = re.search(date_pattern,full_text).group(1)
+
+        broker_agency_pattern = r'Broker ID: (\w+)\n([a-zA-Z0-9 ]+)'
+        broker_id, agency = re.search(broker_agency_pattern,full_text,re.DOTALL|re.MULTILINE).groups()
+        
+        commissions_pattern = r'([a-zA-Z0-9 \/\'&\,.-]+) (?:\(\w+\) )?(\([a-zA-Z0-9 -]+\))(.*?)Total Entries'
+        commissions_tables = re.findall(commissions_pattern,full_text,re.DOTALL|re.MULTILINE)
+        
+        rows_pattern = r'(?:[0-9-]+) ([a-zA-Z -]+ )?([A-Z]{,4} [0-9]{4}) (-?\d?,?\d+.\d+) (-?\d?,?\d+.\d+) (-?\d?,?\d+.\d+) (-?\d?,?\d+.?\d?) (-?\$\d?,?\d+.\d+)'
+        
+        for tables in commissions_tables:
+            group_name,group_number = tables[0],tables[1].strip("()")
+            if "-" in group_number:
+                group_number = group_number.split("-")[0]
+            # groups = re.search(group_name_number_pattern,tables[0]).groups()
+            rows = re.findall(rows_pattern,tables[2],re.DOTALL|re.MULTILINE)
+            for row in rows:
+                print(row)
+                data.append({
+                    "Carrier": carrier,
+                    "Billing Period": date,
+                    "Broker ID": broker_id,
+                    "Agency": agency,
+                    "Group Name": group_name,
+                    "Group Number": group_number,
+                    "Subscriber Name": row[0],
+                    "Billing Month": row[1],
+                    "Invoice Amount": row[2],
+                    "Premium Received": row[3],
+                    "Commission Basis": row[4],
+                    "Rate": row[5],
+                    "Commission Amount": row[6]
+                })
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        df = pd.DataFrame(data)
+        return df,output_name  
+            
     def save_to_excel(self, df, output_name):
         """Save DataFrame to an Excel file and return the file path."""
         if df is None or df.empty:
