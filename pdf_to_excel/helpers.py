@@ -1338,19 +1338,19 @@ class PDFEditor:
         text = self.extract_text()
         data = []
         
-        agency_pattern = 'Commission Month: [a-zA-Z0-9\/ -]+\n(.*?)Total'
+        agency_pattern = r'Commission Month: [a-zA-Z0-9\/ -]+\n(.*?)Total'
         agency = re.search(agency_pattern,text,re.DOTALL).group(1)
         
-        vendor_pattern = 'Vendor # (\w+)'
+        vendor_pattern = r'Vendor # (\w+)'
         vendor = re.search(vendor_pattern,text,re.DOTALL|re.MULTILINE).group(1)
         
-        vendorID_pattern = 'Vendor ID (\w+)'
+        vendorID_pattern = r'Vendor ID (\w+)'
         vendorID = re.search(vendorID_pattern,text,re.DOTALL|re.MULTILINE).group(1)
         
-        date_pattern = 'Commission Month: ([0-9\/ -]+)'
+        date_pattern = r'Commission Month: ([0-9\/ -]+)'
         date = re.search(date_pattern,text,re.DOTALL|re.MULTILINE).group(1)
         
-        subscribers_pattern = 'Paid Commission(.*?)Totals'
+        subscribers_pattern = r'Paid Commission(.*?)Totals'
         subscribers_table = re.findall(subscribers_pattern,text,re.DOTALL|re.MULTILINE)
         
         kpif_pattern = r'KPIF(.*?)KPIF Members'
@@ -1497,6 +1497,58 @@ class PDFEditor:
                 data[i]["Converted from .pdf by"] = ""
         df = pd.DataFrame(data)
         return df,output_name  
+    
+    def allied(self):
+        output_name = self.pdf_output_name
+        data = []
+        carrier = "Allied Benefit"
+        text = self.extract_text()
+        
+        payment_agency_date_pattern = r'Payment type: (\w+)\n([a-zA-Z0-9 -]+)\nReport Date (\d+\/\d+\/\d+)'
+        payment_type, agency, date = re.search(payment_agency_date_pattern,text,re.DOTALL|re.MULTILINE).groups()
+        
+        tables_pattern = r'Paid Amount(.*?)Total for Group'
+        tables = re.findall(tables_pattern,text,re.MULTILINE|re.DOTALL)
+        
+        client_pattern = r'(\w+) ([a-zA-Z0-9 -&]+) (\d+\/\d+\/\d+) (\d+\/\d+\/\d+) (\$\d*,?\d+.\d+) (\$\d*,?\d+.\d+) (\d+%) ([a-zA-Z0-9 ]+) (\d+) (\$\d*,?\d+.\d+)'
+        agent_pattern = r'Writing Agent Number: (\d+) Writing Agent Name: ([a-zA-Z0-9 -]+)\nWriting Agent 2 No: (\d+ )?Writing Agent 2 Name: ?([a-zA-Z0-9 -]+)?'
+        for table in tables:
+            clients = re.findall(client_pattern,table,re.MULTILINE|re.DOTALL)
+            agents = re.findall(agent_pattern,table,re.DOTALL|re.MULTILINE)
+            for i in range(len(agents)):
+                # print(agents)
+                # print(agents[i][0])
+                # print(agents[i][1])
+                for j in range(len(clients)):
+                    # print(agents)
+                    # print(agents[i][0])
+                    # print(agents[i][1])
+                    data.append({
+                        "Carrier": carrier,
+                        "Agency": agency,
+                        "Payment Type": payment_type,
+                        "Report Date": date,
+                        "Writing Agent Number": agents[i][0],
+                        "Writing Agent Name": agents[i][1],
+                        "Writing Agent 2 No": agents[i][2],
+                        "Writing Agent 2 Name": agents[i][3],
+                        "Group No.": clients[j][0],
+                        "Group Name": clients[j][1],
+                        "Billing Period": clients[j][2],
+                        "Adj. Period": clients[j][3],
+                        "Invoice Total": clients[j][4],
+                        "Stoploss Total": clients[j][5],
+                        "Agent Rate": clients[j][6],
+                        "Calculation Method": clients[j][7],
+                        "Census Ct.": clients[j][8],
+                        "Paid Amount": clients[j][9],
+                    })
+                    # print(data)
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        df = pd.DataFrame(data)
+        return df,output_name 
             
     def save_to_excel(self, df, output_name):
         """Save DataFrame to an Excel file and return the file path."""
