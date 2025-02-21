@@ -557,115 +557,37 @@ class PDFEditor:
     def blueshield_of_california(self):
         carrier = "Blue Shield CA"
         output_name = self.pdf_output_name
-        text = self.extract_text(1)
-
+        text = self.extract_text(0,1)
+        tablas = self.extract_tables_from_pdf()
         data = []
         
         date_pattern = r'Statement Date: ([0-9\/]+)'
         date = re.search(date_pattern,text)
-        
-        pattern = r'([A-Z]+ [A-Z]),\s+([A-Z0-9]+)\s+([0-9]+)\s+([A-Za-z\s]+)\s+([0-9\/]+)\s+([0-9\/]+)\s+\$?([0-9.,]+)\s+\$?([0-9.,]+)\s+([0-9.]+)%?\s+\$?\s*([0-9.,]+)\n([A-Z]+)'
-        pattern2 = r'([A-Z0-9]+)\s+([0-9]+)\s+([A-Z\s,.]+)\s+([A-Za-z\s]+)\s+([0-9\/]+)\s+([0-9\/]+)\s+(\$?[0-9.,]+)\s+(\$?[0-9.,]+)\s+([0-9.]+%?)\s+(\$?\s?[0-9.,]+)'
-        pattern3 = r'([a-zA-Z\s\-\/]+)(\d+)\s([A-Z,\s]+)\s(\d+\/\d+\/\d+)\s(.*?)(\d+\/\d+)\s(\d+)\s([$\s0-9.]+)([a-zA-Z]+)'
-        
-        producer_info_pattern = r'Writing Producer(.*?)([a-zA-Z,\s]+)NPN(.*?)'
-        
-        commission_pattern = r"(.*?)Writing Producer"
-        
-        table_pattern = r'Blue Shield of California(.+?)Total \$' 
-        tables = re.findall(table_pattern,text,re.DOTALL)
 
-        if tables:
-            for i in range(len(tables)):
-                info = re.findall(pattern,tables[i], re.DOTALL)
-                info2 = re.findall(pattern2,tables[i],re.DOTALL)
-                info3 = re.findall(pattern3,tables[i],re.DOTALL)
-
-                producer_info = re.search(producer_info_pattern,tables[i])
-                commission_info = re.findall(commission_pattern,tables[i],re.DOTALL)
-                if info:
-                    for row in info:
-                        data.append({
-                            "Carrier" : carrier,
-                            "Statement Date" : date.group(1),
-                            "Writing Producer ID" : producer_info.group(1),
-                            "Producer NPN": producer_info.group(3),
-                            "Producer Name": producer_info.group(2),
-                            "Group Number": row[1],
-                            "Subscriber ID": row[2],
-                            "Customer Name": row[0] + ", " + row[-1],
-                            "Product": row[3],
-                            "Effective Date": row[4],
-                            "Term Date": "",
-                            "Period": row[5],
-                            "Gross Premium": row[6],
-                            "Base Premium": row[7],
-                            "Commission Rate": row[8],
-                            "Cycle Year": "",
-                            "Commission Paid": row[9],
-                            "Commission Type": commission_info[0].strip("\n"),
-                        })
-                if info2:
-                    for row in info2:
-                        data.append({
-                            "Carrier" : carrier,
-                            "Statement Date" : date.group(1),
-                            "Writing Producer ID" : producer_info.group(1),
-                            "Producer NPN": producer_info.group(3),
-                            "Producer Name": producer_info.group(2),
-                            "Group Number": row[0],
-                            "Subscriber ID": row[1],
-                            "Customer Name": row[2],
-                            "Product": row[3],
-                            "Effective Date": row[4],
-                            "Term Date": "",
-                            "Period": row[5],
-                            "Gross Premium": row[6],
-                            "Base Premium": row[7],
-                            "Commission Rate": row[8],
-                            "Cycle Year": "",
-                            "Commission Paid": row[9],
-                            "Commission Type": commission_info[0].strip("\n"),
-                        })
-                if info3:
-                    other_commission_match = re.search(r"Commission Paid(.*)",tables[i],re.DOTALL)
-                    
-                    other_commission = re.findall(pattern3,other_commission_match.group(1),re.DOTALL)
-                    for row in other_commission:
-                        data.append({
-                            "Carrier" : carrier,
-                            "Statement Date" : date.group(1),
-                            "Writing Producer ID" : producer_info.group(1),
-                            "Producer NPN": producer_info.group(3),
-                            "Producer Name": producer_info.group(2),
-                            "Group Number": "",
-                            "Subscriber ID": row[1],
-                            "Customer Name": row[2],
-                            "Product": row[0] + " " + row[-1],
-                            "Effective Date": row[3],
-                            "Term Date": row[4],
-                            "Period": row[5],
-                            "Gross Premium": "",
-                            "Base Premium": "",
-                            "Commission Rate": "",
-                            "Cycle Year": row[6],
-                            "Commission Paid": row[7].strip("\n"),
-                            "Commission Type": commission_info[0].strip("\n"),
-                        })
-        else:
-            tables = self.extract_tables_from_pdf()
-            for table in tables:
-                if len(table) == 2 and len(table[0]) != 10:
-                    commission_type = table[0][0]
-                    producer_id, producer_name = table[1][1], table[1][2]
-                else:
-                    rows = table[1:]
-                    for row in rows:
+        for tabla in tablas:
+            for row in tabla:
+                if row[0] != None:
+                    if "Commission" in row[0]:
+                        commission_type = row[0]
+                        print(f"La commission es: {row}")
+                    if "Writing Producer" in row[0]:
+                        producer_info = row[1:]
+                        producer = [info for info in producer_info if info != None]
+                        if len(producer) == 3:
+                            producer[2] = producer[2].replace("NPN","")
+                            producer_id,producer_name,producer_npn = producer
+                        else:
+                            producer_id,producer_name = producer
+                            producer_npn = ""
+                        
+                            
+                    if re.match(r'X\d+',row[0]):
+                        row = [col for col in row if col != None]
                         data.append({
                             "Carrier" : carrier,
                             "Statement Date" : date.group(1),
                             "Writing Producer ID" : producer_id,
-                            "Producer NPN": "",
+                            "Producer NPN": producer_npn,
                             "Producer Name": producer_name,
                             "Group Number": row[0],
                             "Subscriber ID": row[1],
@@ -679,6 +601,28 @@ class PDFEditor:
                             "Commission Rate": row[8],
                             "Cycle Year": "",
                             "Commission Paid": row[9],
+                            "Commission Type": commission_type,
+                        })
+                    elif re.match(r'\d+',row[0]):
+                        row = [col for col in row if col != None]
+                        data.append({
+                            "Carrier" : carrier,
+                            "Statement Date" : date.group(1),
+                            "Writing Producer ID" : producer_id,
+                            "Producer NPN": producer_npn,
+                            "Producer Name": producer_name,
+                            "Group Number": "",
+                            "Subscriber ID": row[0],
+                            "Customer Name": row[1],
+                            "Product": row[2],
+                            "Effective Date": row[3],
+                            "Term Date": row[4],
+                            "Period": row[5],
+                            "Gross Premium": "",
+                            "Base Premium": "",
+                            "Commission Rate": "",
+                            "Cycle Year": row[6],
+                            "Commission Paid": row[7],
                             "Commission Type": commission_type,
                         })
                         
@@ -1516,13 +1460,7 @@ class PDFEditor:
             clients = re.findall(client_pattern,table,re.MULTILINE|re.DOTALL)
             agents = re.findall(agent_pattern,table,re.DOTALL|re.MULTILINE)
             for i in range(len(agents)):
-                # print(agents)
-                # print(agents[i][0])
-                # print(agents[i][1])
                 for j in range(len(clients)):
-                    # print(agents)
-                    # print(agents[i][0])
-                    # print(agents[i][1])
                     data.append({
                         "Carrier": carrier,
                         "Agency": agency,
@@ -1543,7 +1481,6 @@ class PDFEditor:
                         "Census Ct.": clients[j][8],
                         "Paid Amount": clients[j][9],
                     })
-                    # print(data)
         if len(data) >= 1:
             for i in range(1):
                 data[i]["Converted from .pdf by"] = ""
