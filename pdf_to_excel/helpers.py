@@ -1399,9 +1399,10 @@ class PDFEditor:
         carrier = "Delta Dental of Colorado"
         data = []
         text = self.rotate_pdf()
+       
         # text = self.extract_text(start=1)
         full_text = self.extract_text_delta(text=text)
-        # print(full_text)
+        # print(f"After rotation {full_text}")
         date_pattern = r'Billing Period: ([0-9\/ -]+)'
         date = re.search(date_pattern,full_text).group(1)
 
@@ -1420,7 +1421,7 @@ class PDFEditor:
             # groups = re.search(group_name_number_pattern,tables[0]).groups()
             rows = re.findall(rows_pattern,tables[2],re.DOTALL|re.MULTILINE)
             for row in rows:
-                print(row)
+                # print(row)
                 data.append({
                     "Carrier": carrier,
                     "Billing Period": date,
@@ -1486,6 +1487,40 @@ class PDFEditor:
                 data[i]["Converted from .pdf by"] = ""
         df = pd.DataFrame(data)
         return df,output_name 
+    
+    def delta_dental_virginia(self):
+        carrier = "Delta Dental of Virginia"
+        output_name = self.pdf_output_name
+        data = []
+        text = self.extract_text()
+
+        agency_pattern = r'Agency: (.*?) Tax'
+        agency = re.search(agency_pattern,text).group(1)
+        
+        agents_pattern = r'(\d+) (\w+) ([a-zA-Z0-9 ]+) (\$ \d*,?\d+.\d+) (\$ \d*,?\d+ ?\d*.\d+) ([a-zA-Z0-9-]+) ([a-zA-Z0-9 ]+)'
+        
+        tables_pattern = r'PolicyHolder (?:.*?)\n(.*)'
+        tables = re.findall(tables_pattern,text,re.MULTILINE|re.DOTALL)
+        for table in tables:
+            rows = re.findall(agents_pattern,table,re.MULTILINE|re.DOTALL)
+            for columns in rows:
+                data.append({
+                    "Carrier": carrier,
+                    "Agency": agency,
+                    "PolicyHolder #": columns[0],
+                    "PH Last Name": columns[1],
+                    "Product Name": columns[2],
+                    "Premium": columns[3],
+                    "Comm": columns[4],
+                    "Month": columns[5],
+                    "Broker Name": columns[6],
+                })
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        df = pd.DataFrame(data)
+        return df,output_name 
+                
             
     def save_to_excel(self, df, output_name):
         """Save DataFrame to an Excel file and return the file path."""
