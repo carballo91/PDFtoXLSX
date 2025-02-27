@@ -35,7 +35,7 @@ def upload_pdf(request):
                     first_page_text = pdf_editor.extract_text(pages=1)
                 decoded = pdf_editor.processText(first_page_text)
                 # print(first_page_text)
-                #print(first_page_text)
+                # print(first_page_text)
                 
                 df = None
                 output_name = ""
@@ -86,6 +86,8 @@ def upload_pdf(request):
                     df,output_name = pdf_editor.delta_dental_colorado()
                 elif "Group No. Group Name Billing Period Adj. Period Invoice Total Stoploss Total Agent Rate Calculation" in first_page_text:
                     df,output_name = pdf_editor.allied()
+                elif "Delta Dental of Virginia" in first_page_text:
+                    df,output_name = pdf_editor.delta_dental_virginia()
                 # Add other conditions as needed...
                 # if df is None:
                 #     print(f"Df is none {output_name}")
