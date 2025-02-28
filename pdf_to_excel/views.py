@@ -88,6 +88,8 @@ def upload_pdf(request):
                     df,output_name = pdf_editor.allied()
                 elif "Delta Dental of Virginia" in first_page_text:
                     df,output_name = pdf_editor.delta_dental_virginia()
+                elif "Peek Performance Insurance" in first_page_text:
+                    df,output_name = pdf_editor.peek_performance()
                 # Add other conditions as needed...
                 # if df is None:
                 #     print(f"Df is none {output_name}")
