@@ -1520,6 +1520,55 @@ class PDFEditor:
                 data[i]["Converted from .pdf by"] = ""
         df = pd.DataFrame(data)
         return df,output_name 
+    
+    def peek_performance(self):
+        output_name = self.pdf_output_name
+        data = []
+        text = self.extract_text_from_range(0)
+        
+        agency_pattern = '\d+\/\d+\/\d+$\n[a-zA-Z0-9 ]+\n([a-zA-Z0-9 ]+)'
+        agency = re.search(agency_pattern,text,re.MULTILINE|re.DOTALL).group(1)
+        
+        statements_pattern = r'(.*?)End of Statement'
+        statements = re.findall(statements_pattern,text,re.MULTILINE|re.DOTALL)
+    
+        
+        types_pattern = r'([a-zA-Z0-9 ]+)\nPolicy(.*?)Total'
+        clients_pattern = r'(?:^(\w+)\n(?:([A-Z]+, [A-Z]+) ([A-Z0-9 ]+)\n|([A-Z]* ?[A-Z]+,? ?[A-Z]+ ?[a-zA-Z]{0,1}) ((?:AMBR)* [A-Z0-9 ]+)\n|([A-Z]+, [A-Z]+ ?[a-zA-Z]*)\n(.*?)\n)\n?([A-Z0-9-, ]+) (\d+\/\d+\/\d+)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n|^(?:(\w+) ([a-zA-Z]+, [a-zA-Z]+ ?[A-Z]?)|(\w+) ([a-zA-Z,]+ ?-? [a-zA-Z]+ ?[a-zA-Z]{0,1}) ([a-zA-Z0-9 ]+))\n([a-zA-Z0-9 ]+)?\n?^([a-zA-Z0-9, -]+) (\d+\/\d+\/\d+)\n(\d+\/\d+\/\d+)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n)'
+        for statement in statements:
+            types = re.findall(types_pattern,statement,re.MULTILINE|re.DOTALL)
+            for tpe in types:
+                
+                print(tpe[1])
+                clients = re.findall(clients_pattern,tpe[1],re.DOTALL|re.MULTILINE)
+                print(len(clients))
+                adjusted = []
+                for client in clients:
+                    formatted_client = [c for c in client if c != ""]
+                    adjusted.append(formatted_client)
+                    data.append({
+                        "FMO": "Peek Performance",
+                        "Agency": agency,
+                        "Type": tpe[0],
+                        "Policy No.": formatted_client[0],
+                        "Policyholder": formatted_client[1],
+                        "Product": formatted_client[2],
+                        "Writing Agent": formatted_client[3],
+                        "Effective": formatted_client[4],
+                        "Paid-To": formatted_client[5],
+                        "Comm. Premium": formatted_client[6],
+                        "Rate": formatted_client[7],
+                        "Earned Credit": formatted_client[8],
+                        "Earned Commission": formatted_client[9],
+                        "Escrow Adjustment": formatted_client[10],
+                    })
+                print(len(adjusted))
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        df = pd.DataFrame(data)
+        return df,output_name 
+        
                 
             
     def save_to_excel(self, df, output_name):
