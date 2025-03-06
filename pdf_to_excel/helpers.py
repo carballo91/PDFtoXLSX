@@ -1576,6 +1576,9 @@ class PDFEditor:
         # print(text)
         data = []
         output_name = self.pdf_output_name
+        date_pattern = r'([0-9 \/]+) B e g i n n i n g B a l a n c e'
+        date = re.search(date_pattern,text).group(1)
+        date = date.replace(" ","")
         
         agency_pattern = r'C o m m i s s i o n ([A-Z0-9 &]+) Lifeshield'
         agency = re.search(agency_pattern,text,re.IGNORECASE).group(1)
@@ -1622,7 +1625,7 @@ class PDFEditor:
                                 "Policy Number": client[0],
                                 "Pol/Ridr": client[1],
                                 "Name or Description": client[2],
-                                "Date Paid": client[3],
+                                "Date Paid": date,#client[3],
                                 "Mode Pmts": client[4],
                                 "Pol Yr": client[5],
                                 "WAgt Name": agent[1],
@@ -1728,7 +1731,7 @@ class PDFEditor:
         for data in agents_data:
             
             agents = re.findall(agents_pattern,data,re.MULTILINE|re.DOTALL|re.IGNORECASE)
-            print(agents[:10000])
+            # print(agents[:10000])
             # print(f"Agents {agents[1][:1000]}")
             for agent in agents:
                 # print(agent[1][:1000])
@@ -1741,8 +1744,8 @@ class PDFEditor:
                     member_id = ""
                     effective_date = ""
                     for client in clients:
-                        member_name = client[0] if client[0] != "" else member_name
-                        member_id = client[1] if client[1] != "" else member_id 
+                        member_id = client[0] if client[0] != "" else member_id
+                        member_name = client[1] if client[1] != "" else member_name 
                         effective_date = client[2] if client[2] != "" else effective_date
                         data_pd.append({
                             "Carrier": carrier,
@@ -1768,8 +1771,8 @@ class PDFEditor:
                     member_id = ""
                     effective_date = ""
                     for client in clients2:
-                        member_name = client[0] if client[0] != "" else member_name
-                        member_id = client[1] if client[1] != "" else member_id 
+                        member_id = client[0] if client[0] != "" else member_id
+                        member_name = client[1] if client[1] != "" else member_name
                         effective_date = client[2] if client[2] != "" else effective_date
                         data_pd.append({
                             "Carrier": carrier,
@@ -1810,7 +1813,7 @@ class PDFEditor:
         text = self.extract_text()
         # print(text)
         
-        carrier = "Liberty Bankers"
+        carrier = "Liberty Bankers Ancillary"
         
         agency_pattern = r'([a-z ]+) TRANSACTION CODES'
         agency = re.search(agency_pattern,text,re.IGNORECASE).group(1)
