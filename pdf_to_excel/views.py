@@ -8,6 +8,7 @@ from io import BytesIO
 import zipfile
 import urllib
 import time
+from pdfminer.pdfdocument import PDFPasswordIncorrect
 
 def upload_pdf(request):
     if request.method == "POST":
@@ -29,10 +30,16 @@ def upload_pdf(request):
 
                 # start_time = time.time()
                 # Extract text from the PDF and determine processing method
-                try:
-                    first_page_text = pdf_editor.extract_text(pages=2)
-                except IndexError:
-                    first_page_text = pdf_editor.extract_text(pages=1)
+                passwords = [None,"2646","WG500"]
+                for password in passwords:
+                    try:
+                        first_page_text = pdf_editor.extract_text(pages=2,password=password)
+                        break
+                    except IndexError:
+                        first_page_text = pdf_editor.extract_text(pages=1,password=password)
+                        break
+                    except PDFPasswordIncorrect:
+                        continue
                 decoded = pdf_editor.processText(first_page_text)
                 # print(first_page_text)
                 # print(first_page_text)
@@ -90,6 +97,14 @@ def upload_pdf(request):
                     df,output_name = pdf_editor.delta_dental_virginia()
                 elif "Peek Performance Insurance" in first_page_text:
                     df,output_name = pdf_editor.peek_performance()
+                elif "LifeShield National Insurance" in first_page_text:
+                    df,output_name = pdf_editor.life_shield()
+                elif "Liberty Bankers Life Insurance Company" in first_page_text:
+                    df,output_name = pdf_editor.libery_bankers()
+                elif "ID Name Effective Date Coverage Period LOB Plan / Adjustment Description Fst / Ren Premium Month Rate Commission Due" in first_page_text:
+                    df,output_name = pdf_editor.baylor_scott()
+                elif "Liberty Bankers Insurance Group" in first_page_text:
+                    df,output_name = pdf_editor.liberty_bankers_life()
                 # Add other conditions as needed...
                 # if df is None:
                 #     print(f"Df is none {output_name}")
