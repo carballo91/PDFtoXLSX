@@ -5,6 +5,7 @@ from io import BytesIO
 import pdfplumber
 import time
 import fitz
+from pdfminer.pdfdocument import PDFPasswordIncorrect
 
 class PDFEditor:
     def __init__(self, pdf_file):
@@ -1648,16 +1649,27 @@ class PDFEditor:
         return df,output_name 
           
     def libery_bankers(self):
-        text = self.extract_text(password="WG500")
+        passwords = ["WG500","LBL22728"]
+        is_lbl = False
+        for password in passwords:
+            try:
+                text = self.extract_text(password=password)
+                tables_from_pdf = self.extract_tables_from_pdf(password=password)
+                if password == "LBL22728":
+                    is_lbl = True
+                break
+            except PDFPasswordIncorrect:
+                continue
         data = []
         output_name = self.pdf_output_name
         carrier = "Liberty Bankers"
         # print(text)
-        agency_pattern = r'n\s([a-z &]+)\s+Liberty Bankers'
+        agency_pattern = r'n\s([a-z, &]+)\s+Liberty Bankers'
         agency = re.search(agency_pattern,text,re.IGNORECASE).group(1)
         
         statements_pattern = r'Beginning Balances.*?\n(.*?)Statement Totals'
         statements = re.findall(statements_pattern,text,re.MULTILINE|re.DOTALL)
+ 
         tables_pattern = r'([a-z0-9- ]+)\n(.*?)Life Subtotal [a-z0-9 .*-]+\n?'
         managers_pattern = r'(.*?)Mgr ([a-z ,]+) \((\w+)\)?'
         clients_pattern = r'^(\w+) (\d+) ([a-z, ]+) ([a-z0-9]+) (\d+) (\d+\/\d+\/\d+) (-?\d+) (-?\d+) (-?[0-9.,]+) (-?[0-9.,-]+) (-?[0-9.,-]+) (-?[0-9.,-]+) (-?[a-z0-9.,-]+ )?(-?[0-9.,-]+) ?(-?[0-9.,-]+)? ?(-?[0-9.,-]+)?\n'
@@ -1667,42 +1679,75 @@ class PDFEditor:
             for table in tables:
                 category = table[0]
                 managers = re.findall(managers_pattern,table[1],re.MULTILINE|re.DOTALL|re.IGNORECASE)
-                for manager in managers:
-                    manager_name = manager[1]
-                    manager_id = manager[2]
-                    agents = re.findall(agent_pattern,manager[0],re.MULTILINE|re.DOTALL|re.IGNORECASE)
-                    for agent in agents:
-                        agent_name = agent[1]
-                        agent_id = agent[2]
-                        clients = re.findall(clients_pattern,agent[0],re.MULTILINE|re.DOTALL|re.IGNORECASE)
-                        for client in clients:
-                            data.append({
-                                "Carrier": carrier,
-                                "Agency": agency,
-                                "Category": category,
-                                "Policy Number": client[0],
-                                "Ph": client[1],
-                                "Name or Description": client[2],
-                                "Plan": client[3],
-                                "Age": client[4],
-                                "WAgt Name": agent_name,
-                                "WAgt ID": agent_id,
-                                "Mgr Name": manager_name,
-                                "Mgr ID": manager_id,
-                                "Date Paid": client[5],
-                                "Num Pmt": client[6],
-                                "Pol Dur": client[7],
-                                "Premium Paid": client[8],
-                                "Face Amount": client[9],
-                                "Comm Rate": client[10],
-                                "Earned Commission": client[11],
-                                "Advance or ChgBack": client[12],
-                                "Reserve Percent": "",
-                                "Unearned Advance": client[13],
-                                "Reserve Account": "",
-                                "Agent Account": client[14],
-                                "Loan Account": client[15],
-                            })
+                if managers:
+                    for manager in managers:
+                        manager_name = manager[1]
+                        manager_id = manager[2]
+                        agents = re.findall(agent_pattern,manager[0],re.MULTILINE|re.DOTALL|re.IGNORECASE)
+                        for agent in agents:
+                            agent_name = agent[1]
+                            agent_id = agent[2]
+                            clients = re.findall(clients_pattern,agent[0],re.MULTILINE|re.DOTALL|re.IGNORECASE)
+                            for client in clients:
+                                data.append({
+                                    "Carrier": carrier,
+                                    "Agency": agency,
+                                    "Category": category,
+                                    "Policy Number": client[0],
+                                    "Ph": client[1],
+                                    "Name or Description": client[2],
+                                    "Plan": client[3],
+                                    "Age": client[4],
+                                    "WAgt Name": agent_name,
+                                    "WAgt ID": agent_id,
+                                    "Mgr Name": manager_name,
+                                    "Mgr ID": manager_id,
+                                    "Date Paid": client[5],
+                                    "Num Pmt": client[6],
+                                    "Pol Dur": client[7],
+                                    "Premium Paid": client[8],
+                                    "Face Amount": client[9],
+                                    "Comm Rate": client[10],
+                                    "Earned Commission": client[11],
+                                    "Advance or ChgBack": client[12],
+                                    "Reserve Percent": "",
+                                    "Unearned Advance": client[13],
+                                    "Reserve Account": "",
+                                    "Agent Account": client[14],
+                                    "Loan Account": client[15],
+                                })
+                elif is_lbl:
+                    clients = re.findall(clients_pattern,table[1],re.MULTILINE|re.DOTALL|re.IGNORECASE)
+                    row = tables_from_pdf[0][5:6]
+      
+                    for client in row:
+                        data.append({
+                            "Carrier": carrier,
+                            "Agency": agency,
+                            "Category": category,
+                            "Policy Number": clients[0][0],
+                            "Ph": client[1],
+                            "Name or Description": client[2],
+                            "Plan": client[3],
+                            "Age": client[4],
+                            "WAgt Name": "",#agent_name,
+                            "WAgt ID": "",#agent_id,
+                            "Mgr Name": "",#manager_name,
+                            "Mgr ID": "",#manager_id,
+                            "Date Paid": client[5],
+                            "Num Pmt": client[6],
+                            "Pol Dur": client[7],
+                            "Premium Paid": client[8],
+                            "Face Amount": client[9],
+                            "Comm Rate": client[10],
+                            "Earned Commission": client[11],
+                            "Advance or ChgBack": client[12],
+                            "Reserve Percent": "",
+                            "Unearned Advance": client[14],
+                            "Reserve Account": "",
+                            "Agent Account": client[16],
+                            "Loan Account": client[17] if client[17] is not None else "",
+                        })
         if len(data) >= 1:
             for i in range(1):
                 data[i]["Converted from .pdf by"] = ""
@@ -1852,7 +1897,55 @@ class PDFEditor:
         # print(df)
         return df,output_name 
         
-      
+    def sentara_aca(self):
+        data = []
+        carrier = "Sentara ACA"
+        output_name = self.pdf_output_name
+        text = self.extract_tables_from_pdf()
+        date_pattern = r'^([a-z]+ \d+, \d+) ([a-z]+ \d+, \d+)'
+        clients_pattern = r'(\d+) ([a-z, -]+) (\w+) ([a-z, -]+) (\d+) ([0-9.]+) (\$[0-9.]+) (\$[0-9.]+) ([a-z,-]+ [a-z,-]+ [a-z,-]*) ([a-z]+ )?([0-9.]+) (\d+)'
+        # print(text)
+        agents = []
+
+        for tables in text:
+            for table in tables[2:]:
+                for rows in table:
+                    print(rows)
+                    if rows is None or rows == "":
+                        continue
+                    agents.append([rows])
+                    if rows is not None:
+                        date = re.search(date_pattern,rows)
+                    if date:
+                        date1, date2 = date.group(1),date.group(2)
+        for agent in agents:
+            date = re.search(date_pattern,agent[0],re.IGNORECASE)
+            date1, date2 = date.group(1),date.group(2)
+            clients = re.findall(clients_pattern,agent[0],re.DOTALL|re.MULTILINE|re.IGNORECASE)
+            for client in clients:
+                data.append({
+                    "Carrier": carrier,
+                    "Check Date": date1,
+                    "Last Pay Date": date2,
+                    "Agency #": client[0],
+                    "AGENCY(group)": client[1],
+                    "Client #": client[2],
+                    "Client": client[3],
+                    "Invoice": client[4],
+                    "Comm Rate": client[5],
+                    "Premium": client[6],
+                    "Net": client[7],
+                    "Agent": client[8],
+                    "Comm Mkt Seg": client[9],
+                    "MS Rate": client[10],
+                    "Contract Count": client[11],
+                })
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        df = pd.DataFrame(data)
+        # print(df)
+        return df,output_name 
             
     def save_to_excel(self, df, output_name):
         """Save DataFrame to an Excel file and return the file path."""
