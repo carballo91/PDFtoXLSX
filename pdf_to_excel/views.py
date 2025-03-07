@@ -30,7 +30,7 @@ def upload_pdf(request):
 
                 # start_time = time.time()
                 # Extract text from the PDF and determine processing method
-                passwords = [None,"2646","WG500"]
+                passwords = [None,"2646","WG500","LBL22728"]
                 for password in passwords:
                     try:
                         first_page_text = pdf_editor.extract_text(pages=2,password=password)
@@ -105,6 +105,8 @@ def upload_pdf(request):
                     df,output_name = pdf_editor.baylor_scott()
                 elif "Liberty Bankers Insurance Group" in first_page_text:
                     df,output_name = pdf_editor.liberty_bankers_life()
+                elif "CHECK DATE LAST PAY DATE AGENCY # AGENCY (group) CLIENT # CLIENT INVOICE # COMM RATE PREMIUM NET AGENT C MO KM T M SEG M RAS TE C CO ON UNTR TACT" in first_page_text:
+                    df,output_name = pdf_editor.sentara_aca()
                 # Add other conditions as needed...
                 # if df is None:
                 #     print(f"Df is none {output_name}")
