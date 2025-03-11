@@ -107,6 +107,8 @@ def upload_pdf(request):
                     df,output_name = pdf_editor.liberty_bankers_life()
                 elif "CHECK DATE LAST PAY DATE AGENCY # AGENCY (group) CLIENT # CLIENT INVOICE # COMM RATE PREMIUM NET AGENT C MO KM T M SEG M RAS TE C CO ON UNTR TACT" in first_page_text:
                     df,output_name = pdf_editor.sentara_aca()
+                elif "STEPHENS-MATTHEWS MARKETING" in first_page_text:
+                    df,output_name = pdf_editor.stevens_matthews()
                 # Add other conditions as needed...
                 # if df is None:
                 #     print(f"Df is none {output_name}")
