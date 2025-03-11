@@ -1946,6 +1946,91 @@ class PDFEditor:
         df = pd.DataFrame(data)
         # print(df)
         return df,output_name 
+    
+    def stevens_matthews(self):
+        output_name = self.pdf_output_name
+        fmo = "Stevens Matthews"
+        text = self.extract_text()
+        data = []
+        # print(text)
+        
+        carrier_date_agency_pattern = r'([a-z ]+)\n(\d+\/\d+\/\d+)\n([a-z ]+)'
+        carrier_date_agency = re.search(carrier_date_agency_pattern,text,re.IGNORECASE)
+        
+        carrier,date,agency = carrier_date_agency.group(1),carrier_date_agency.group(2),carrier_date_agency.group(3)
+        
+        table_pattern = r'comm\n(.*?)Total Commission'
+        agents_pattern = r"^([a-z]+-?[a-z]*,? [a-z]+[ a-z]*.*)"
+        agent_pattern = r'^([a-z]+-?[a-z]*,? [a-z]+[ a-z]*)$'
+
+        table = re.search(table_pattern,text,re.MULTILINE|re.DOTALL|re.IGNORECASE).group(1)
+        agents = re.search(agents_pattern,table,re.MULTILINE|re.DOTALL|re.IGNORECASE).group(1)
+        agents = agents.split("\n")
+        
+        filtered_agents = {}
+        for agent in agents:
+            if re.match(agent_pattern,agent,re.IGNORECASE) and agent != "FIRST YEAR":
+                agent_name = agent
+                filtered_agents[agent] = []
+                continue
+            filtered_agents[agent_name].append(agent)
+            
+        info_pattern = r'^([a-z ]+) ((?:silver|gold)[0-9 ]+) ([a-z-0-9]+) ([0-9-]+) ([0-9-]+) (\d+\/\d+\/\d+) (\d+) (\$ [0-9 .]+) (\$ [0-9 .]+)$'
+        info_pattern2 = r'^([a-z]+-? ?[a-z]+)-? ?.*? (\w+) (\d+\/\d+\/\d+) (\d+\/\d+\/\d+) (\d+\/\d+\/\d+) (\$[0-9 .]+) (-?\d+) (\$[0-9 .()]+)$'
+        for key,values in filtered_agents.items():
+            # print(f"Keys are {key}")
+            stm_type = ""
+            if values:
+                for value in values:        
+                    info_match = re.match(info_pattern,value,re.IGNORECASE)
+                    info_match2 = re.match(info_pattern2,value,re.IGNORECASE)
+                    if info_match2:
+                        data.append({
+                            "FMO": fmo,
+                            "Carrier": carrier,
+                            "Statement Date": date,
+                            "Agency": agency,
+                            "Agent": key,
+                            "Type": stm_type,
+                            "Policy Holder Name": info_match2.group(1),
+                            "Plan Name": "AMBETTER",
+                            "Policy #": info_match2.group(2),
+                            "Status Date": info_match2.group(4),
+                            "Month Paid": info_match2.group(3),
+                            "Effective Date": info_match2.group(5),
+                            "Per Mem": info_match2.group(7),
+                            "Comm": info_match2.group(6),
+                            "Total Comm": info_match2.group(8),
+                        })
+                    else:
+                        if not info_match:
+                            stm_type = value
+                            print(stm_type)
+                        else:
+                            print(info_match.groups)
+                            data.append({
+                                "FMO": fmo,
+                                "Carrier": carrier,
+                                "Statement Date": date,
+                                "Agency": agency,
+                                "Agent": key,
+                                "Type": stm_type,
+                                "Policy Holder Name": info_match.group(1),
+                                "Plan Name": info_match.group(2),
+                                "Policy #": info_match.group(3),
+                                "Status Date": info_match.group(4),
+                                "Month Paid": info_match.group(5),
+                                "Effective Date": info_match.group(6),
+                                "Per Mem": info_match.group(7),
+                                "Comm": info_match.group(8),
+                                "Total Comm": info_match.group(9),
+                            })
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        df = pd.DataFrame(data)
+        # print(df)
+        return df,output_name 
             
     def save_to_excel(self, df, output_name):
         """Save DataFrame to an Excel file and return the file path."""
