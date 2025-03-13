@@ -28,9 +28,14 @@ def upload_pdf(request):
                     print("It is not valid")
                     return render(request, 'upload.html', {'form': form, 'message': True})
 
+                pdf_name = pdf_editor.pdf_output_name.split()[2]
+         
+                
                 # start_time = time.time()
                 # Extract text from the PDF and determine processing method
                 passwords = [None,"2646","WG500","LBL22728"]
+                pw = pdf_name.rstrip("Z")
+                passwords.append(pw)
                 for password in passwords:
                     try:
                         first_page_text = pdf_editor.extract_text(pages=2,password=password)
