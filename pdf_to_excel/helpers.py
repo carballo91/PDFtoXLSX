@@ -1649,19 +1649,24 @@ class PDFEditor:
         return df,output_name 
           
     def libery_bankers(self):
+        output_name = self.pdf_output_name
+        pw_name = self.pdf_output_name.split()[2]
+        pw = pw_name.rstrip("Z")
+        print(output_name)
         passwords = ["WG500","LBL22728"]
+        passwords.append(pw)
         is_lbl = False
         for password in passwords:
             try:
                 text = self.extract_text(password=password)
                 tables_from_pdf = self.extract_tables_from_pdf(password=password)
-                if password == "LBL22728":
+                if password == "LBL22728" or password == "WG598":
                     is_lbl = True
                 break
             except PDFPasswordIncorrect:
                 continue
         data = []
-        output_name = self.pdf_output_name
+        
         carrier = "Liberty Bankers"
         # print(text)
         agency_pattern = r'n\s([a-z, &]+)\s+Liberty Bankers'
@@ -1680,6 +1685,7 @@ class PDFEditor:
                 category = table[0]
                 managers = re.findall(managers_pattern,table[1],re.MULTILINE|re.DOTALL|re.IGNORECASE)
                 if managers:
+                    print(f"Managers {managers}")
                     for manager in managers:
                         manager_name = manager[1]
                         manager_id = manager[2]
@@ -1718,6 +1724,8 @@ class PDFEditor:
                                 })
                 elif is_lbl:
                     clients = re.findall(clients_pattern,table[1],re.MULTILINE|re.DOTALL|re.IGNORECASE)
+                    print(f"Clients {clients}")
+                    
                     row = tables_from_pdf[0][5:6]
       
                     for client in row:
@@ -2029,7 +2037,6 @@ class PDFEditor:
             for i in range(1):
                 data[i]["Converted from .pdf by"] = ""
         df = pd.DataFrame(data)
-        # print(df)
         return df,output_name 
             
     def save_to_excel(self, df, output_name):
