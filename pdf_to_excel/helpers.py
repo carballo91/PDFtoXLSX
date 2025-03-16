@@ -1653,16 +1653,20 @@ class PDFEditor:
         output_name = self.pdf_output_name
         pw_name = self.pdf_output_name.split()[2]
         pw = pw_name.rstrip("Z")
+        print("this is the output name")
         print(output_name)
         passwords = ["WG500","LBL22728"]
         passwords.append(pw)
         is_lbl = False
         for password in passwords:
+            is_lbl = False
             try:
                 text = self.extract_text(password=password)
-                tables_from_pdf = self.extract_tables_from_pdf(password=password)
-                if password == "LBL22728":
+                """Delete this part"""
+                if password == "LBL22728" and output_name == "Agent Statements 22728 LBL22728ZZ 01-02-25 (1)":
+                    tables_from_pdf = self.extract_tables_from_pdf(password=password)
                     is_lbl = True
+                    """Up to here"""
                 break
             except PDFPasswordIncorrect:
                 continue
@@ -1680,11 +1684,11 @@ class PDFEditor:
         managers_pattern = r'(.*?)Mgr ([a-z ,]+) \((\w+)\)?'
         clients_pattern = r'^(\w+) (\d+) ([a-z, ]+) ([a-z0-9]+) (\d+) (\d+\/\d+\/\d+) (-?\d+) (-?\d+) (-?[0-9.,]+) (-?[0-9.,-]+) (-?[0-9.,-]+) (-?[0-9.,-]+) (-?[a-z0-9.,-]+ )?(-?[0-9.,-]+) ?(-?[0-9.,-]+)? ?(-?[0-9.,-]+)?\n'
         agent_pattern = r'(.*?)WAgt ([a-z, ]+) \((\w+)\)'
-        wg598_clients_pattern = r'^(\w+) (\d+) ([a-z-, ]+) ([ssimplad]+) (\d+) (\d+\/\d+\/\d+) (-?\d+) (-?\d+) (-?[0-9.,]+) (-?[0-9.,-]+) (-?[0-9.,-]+) (-?[0-9.,-]+) (-?[a-z0-9.,-]+)( -?[0-9.,-]+)?'
+        wg598_clients_pattern = r'^(\w+) (\d+) ([a-z-, ]+) ([ssimplad|PSIMPL]+) (\d+) (\d+\/\d+\/\d+) (-?\d+) (-?\d+) (-?[0-9.,]+) (-?[0-9.,-]+) (-?[0-9.,-]+) (-?[0-9.,-]+) (-?[a-z0-9.,-]+)( -?[0-9.,-]+)?'
         for statement in statements:
             tables = re.findall(tables_pattern,statement,re.MULTILINE|re.DOTALL|re.IGNORECASE)
             for table in tables:
-                print(table[1])
+                # print(f"Table 1 {table[1]}")
                 category = table[0]
                 managers = re.findall(managers_pattern,table[1],re.MULTILINE|re.DOTALL|re.IGNORECASE)
                 agents = re.findall(agent_pattern,table[1],re.MULTILINE|re.DOTALL|re.IGNORECASE)
@@ -1699,6 +1703,7 @@ class PDFEditor:
                             agent_id = agent[2]
                             clients = re.findall(clients_pattern,agent[0],re.MULTILINE|re.DOTALL|re.IGNORECASE)
                             for client in clients:
+                                
                                 data.append({
                                     "Carrier": carrier,
                                     "Agency": agency,
@@ -1760,41 +1765,6 @@ class PDFEditor:
                                     "Agent Account": client[13],
                                     "Loan Account": client[14],
                                 })
-                    
-                elif is_lbl:
-                    clients = re.findall(clients_pattern,table[1],re.MULTILINE|re.DOTALL|re.IGNORECASE)
-                    print(f"Clients {clients}")
-                    
-                    row = tables_from_pdf[0][5:6]
-      
-                    for client in row:
-                        data.append({
-                            "Carrier": carrier,
-                            "Agency": agency,
-                            "Category": category,
-                            "Policy Number": clients[0][0],
-                            "Ph": client[1],
-                            "Name or Description": client[2],
-                            "Plan": client[3],
-                            "Age": client[4],
-                            "WAgt Name": "",#agent_name,
-                            "WAgt ID": "",#agent_id,
-                            "Mgr Name": "",#manager_name,
-                            "Mgr ID": "",#manager_id,
-                            "Date Paid": client[5],
-                            "Num Pmt": client[6],
-                            "Pol Dur": client[7],
-                            "Premium Paid": client[8],
-                            "Face Amount": client[9],
-                            "Comm Rate": client[10],
-                            "Earned Commission": client[11],
-                            "Advance or ChgBack": client[12],
-                            "Reserve Percent": "",
-                            "Unearned Advance": client[14],
-                            "Reserve Account": "",
-                            "Agent Account": client[16],
-                            "Loan Account": client[17] if client[17] is not None else "",
-                        })
                 elif agents_wg598:
                     for client in agents_wg598:
                         data.append({
@@ -1823,6 +1793,46 @@ class PDFEditor:
                             "Reserve Account": "",
                             "Agent Account": client[12],
                             "Loan Account": client[13],
+                        })
+                elif is_lbl:
+                    clients = re.findall(clients_pattern,table[1],re.MULTILINE|re.DOTALL|re.IGNORECASE)
+                    print(output_name)
+                    print(f"Clients {clients}")
+                    if not clients:return
+                    row = tables_from_pdf[0][5:6]
+                    
+                    print(row[0][0])
+                    print(output_name)
+                    print(clients)
+                    for client in row:
+                        # print(text)
+                        print(f"Client is {client}")
+                        data.append({
+                            "Carrier": carrier,
+                            "Agency": agency,
+                            "Category": category,
+                            "Policy Number": clients[0][0],
+                            "Ph": client[1],
+                            "Name or Description": client[2],
+                            "Plan": client[3],
+                            "Age": client[4],
+                            "WAgt Name": "",#agent_name,
+                            "WAgt ID": "",#agent_id,
+                            "Mgr Name": "",#manager_name,
+                            "Mgr ID": "",#manager_id,
+                            "Date Paid": client[5],
+                            "Num Pmt": client[6],
+                            "Pol Dur": client[7],
+                            "Premium Paid": client[8],
+                            "Face Amount": client[9],
+                            "Comm Rate": client[10],
+                            "Earned Commission": client[11],
+                            "Advance or ChgBack": client[12],
+                            "Reserve Percent": "",
+                            "Unearned Advance": client[14],
+                            "Reserve Account": "",
+                            "Agent Account": client[16],
+                            "Loan Account": client[17] if client[17] is not None else "",
                         })
                     
         if len(data) >= 1:
