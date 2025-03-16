@@ -1576,6 +1576,7 @@ class PDFEditor:
         text = self.extract_text(password="2646")
         # print(text)
         data = []
+
         output_name = self.pdf_output_name
         date_pattern = r'([0-9 \/]+) B e g i n n i n g B a l a n c e'
         date = re.search(date_pattern,text).group(1)
@@ -1660,7 +1661,7 @@ class PDFEditor:
             try:
                 text = self.extract_text(password=password)
                 tables_from_pdf = self.extract_tables_from_pdf(password=password)
-                if password == "LBL22728" or password == "WG598":
+                if password == "LBL22728":
                     is_lbl = True
                 break
             except PDFPasswordIncorrect:
@@ -1679,13 +1680,16 @@ class PDFEditor:
         managers_pattern = r'(.*?)Mgr ([a-z ,]+) \((\w+)\)?'
         clients_pattern = r'^(\w+) (\d+) ([a-z, ]+) ([a-z0-9]+) (\d+) (\d+\/\d+\/\d+) (-?\d+) (-?\d+) (-?[0-9.,]+) (-?[0-9.,-]+) (-?[0-9.,-]+) (-?[0-9.,-]+) (-?[a-z0-9.,-]+ )?(-?[0-9.,-]+) ?(-?[0-9.,-]+)? ?(-?[0-9.,-]+)?\n'
         agent_pattern = r'(.*?)WAgt ([a-z, ]+) \((\w+)\)'
+        wg598_clients_pattern = r'^(\w+) (\d+) ([a-z-, ]+) ([ssimplad]+) (\d+) (\d+\/\d+\/\d+) (-?\d+) (-?\d+) (-?[0-9.,]+) (-?[0-9.,-]+) (-?[0-9.,-]+) (-?[0-9.,-]+) (-?[a-z0-9.,-]+)( -?[0-9.,-]+)?'
         for statement in statements:
             tables = re.findall(tables_pattern,statement,re.MULTILINE|re.DOTALL|re.IGNORECASE)
             for table in tables:
+                print(table[1])
                 category = table[0]
                 managers = re.findall(managers_pattern,table[1],re.MULTILINE|re.DOTALL|re.IGNORECASE)
+                agents = re.findall(agent_pattern,table[1],re.MULTILINE|re.DOTALL|re.IGNORECASE)
+                agents_wg598 = re.findall(wg598_clients_pattern,table[1],re.MULTILINE|re.DOTALL|re.IGNORECASE)
                 if managers:
-                    print(f"Managers {managers}")
                     for manager in managers:
                         manager_name = manager[1]
                         manager_id = manager[2]
@@ -1722,6 +1726,41 @@ class PDFEditor:
                                     "Agent Account": client[14],
                                     "Loan Account": client[15],
                                 })
+                elif agents:
+                    clients_pattern = r'^(\w+) (\d+) ([a-z, ]+) ([a-z0-9]+) (\d+) (\d+\/\d+\/\d+) (-?\d+) (-?\d+) (-?[0-9.,]+) (-?[0-9.,-]+) (-?[0-9.,-]+) (-?[0-9.,-]+) (-?[a-z0-9.,-]+ )?(-?[0-9.,-]+)( -?[a-z0-9.,-]+ )?\n'
+                    for agent in agents:
+                        agent_name = agent[1]
+                        agent_id = agent[2]
+                        clients = re.findall(clients_pattern,agent[0],re.MULTILINE|re.DOTALL|re.IGNORECASE)
+                        for client in clients:
+                            data.append({
+                                    "Carrier": carrier,
+                                    "Agency": agency,
+                                    "Category": category,
+                                    "Policy Number": client[0],
+                                    "Ph": client[1],
+                                    "Name or Description": client[2],
+                                    "Plan": client[3],
+                                    "Age": client[4],
+                                    "WAgt Name": agent_name,
+                                    "WAgt ID": agent_id,
+                                    "Mgr Name": "",
+                                    "Mgr ID": "",
+                                    "Date Paid": client[5],
+                                    "Num Pmt": client[6],
+                                    "Pol Dur": client[7],
+                                    "Premium Paid": client[8],
+                                    "Face Amount": client[9],
+                                    "Comm Rate": client[10],
+                                    "Earned Commission": client[11],
+                                    "Advance or ChgBack": "",
+                                    "Reserve Percent": "",
+                                    "Unearned Advance": client[12],
+                                    "Reserve Account": "",
+                                    "Agent Account": client[13],
+                                    "Loan Account": client[14],
+                                })
+                    
                 elif is_lbl:
                     clients = re.findall(clients_pattern,table[1],re.MULTILINE|re.DOTALL|re.IGNORECASE)
                     print(f"Clients {clients}")
@@ -1756,6 +1795,36 @@ class PDFEditor:
                             "Agent Account": client[16],
                             "Loan Account": client[17] if client[17] is not None else "",
                         })
+                elif agents_wg598:
+                    for client in agents_wg598:
+                        data.append({
+                            "Carrier": carrier,
+                            "Agency": agency,
+                            "Category": category,
+                            "Policy Number": client[0],
+                            "Ph": client[1],
+                            "Name or Description": client[2],
+                            "Plan": client[3],
+                            "Age": client[4],
+                            "WAgt Name": "",
+                            "WAgt ID": "",
+                            "Mgr Name": "",
+                            "Mgr ID": "",
+                            "Date Paid": client[5],
+                            "Num Pmt": client[6],
+                            "Pol Dur": client[7],
+                            "Premium Paid": client[8],
+                            "Face Amount": client[9],
+                            "Comm Rate": client[10],
+                            "Earned Commission": client[11],
+                            "Advance or ChgBack": "",
+                            "Reserve Percent": "",
+                            "Unearned Advance": "",
+                            "Reserve Account": "",
+                            "Agent Account": client[12],
+                            "Loan Account": client[13],
+                        })
+                    
         if len(data) >= 1:
             for i in range(1):
                 data[i]["Converted from .pdf by"] = ""
@@ -2033,6 +2102,67 @@ class PDFEditor:
                                 "Comm": info_match.group(8),
                                 "Total Comm": info_match.group(9),
                             })
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        df = pd.DataFrame(data)
+        return df,output_name 
+    
+    def united_american(self):
+        output_name = self.pdf_output_name
+        data = []
+        codes = {
+            "7": "AGENT ERROR", 
+            "A": "REGISTRATION COMMISSION or ANNUITY COMMISSION",
+            "B": "MEDICARE PART D", 
+            "C": "CANCELLATION",
+            "D": "DECLINED", 
+            "G": "DEATH CLAIM IN FIRST YEAR",
+            "H": "AGENT HIERACHY M Pending Issue",
+            "N": "NEW BUSINESS COMMISSION ADJUSTMENT or NEW BUSINESS ADJUSTMENT", 
+            "O": "DOES NOT MEET ADVANCE CRITERIA",
+            "P": "INCORRECT PREMIUM BASED ON APPLICATION AS SUBMITTED", 
+            "R": "REINSTATED or COMMISSIONABLE RENEWAL PREMIUM",
+            "S": "STATUS CHANGED", 
+            "U": "UNDERWRITING DECLINED ADVANCE",
+            "W": "PARTIAL ADVANCE PENDING INITIAL PAYMENT", 
+            "X": "CONVERSION",
+            "Z": "BALANCE OF ADVANCE - INITIAL PAYMENT",
+            "**": "RETURNED CHECK", 
+            "V": "PREVIOUSLY ADVANCED",
+        }
+        text = self.extract_text()
+        
+        carrier_agency_agency_id_date_pattern = r'\n(.*?)\n.*?\n(\d+\/\d+\/\d+)\nAgent:.*?\n([a-z ]+),?\s?#?(\w+)$'
+        carrier,agency,agency_id,date = re.search(carrier_agency_agency_id_date_pattern,text,re.IGNORECASE|re.MULTILINE|re.DOTALL).groups()
+        tables_pattern = r'account(.*?)balance forward'
+        agents_pattern = r'^([a-z ]+)\n(.*?)total'
+        clients_pattern = r'(\w+) (\d+) ([a-z, ]+) (\d+) (\d+\/\d+\/\d+) (\d+\/\d+\/\d+) ([0-9.-]+) ([0-9.%-]+) ([0-9.-]+)\s?([a-z*]{,2})?'
+        
+        tables = re.findall(tables_pattern,text,re.IGNORECASE|re.MULTILINE|re.DOTALL)
+        
+        for table in tables:
+            agents = re.findall(agents_pattern,table,re.IGNORECASE|re.DOTALL|re.MULTILINE)
+            for agent in agents:
+                clients = re.findall(clients_pattern,agent[1],re.IGNORECASE|re.MULTILINE|re.DOTALL)
+                for client in clients:
+                    data.append({
+                        "Carrier": carrier,
+                        "Agency": agency,
+                        "Agency ID": agency_id,
+                        "Date": date,
+                        "Type": agent[0],
+                        "Writing Agent ID": client[0],
+                        "Policy Number": client[1],
+                        "Insured Name": client[2],
+                        "Months Paid": client[3],
+                        "Due Date": client[4],
+                        "Issue Date": client[5],
+                        "Premium Amount": client[6],
+                        "Comm Rate": client[7],
+                        "Comm Amount": client[8],
+                        "Reason Code":codes.get(client[9]),
+                    })
         if len(data) >= 1:
             for i in range(1):
                 data[i]["Converted from .pdf by"] = ""
