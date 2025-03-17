@@ -28,7 +28,10 @@ def upload_pdf(request):
                     print("It is not valid")
                     return render(request, 'upload.html', {'form': form, 'message': True})
 
-                pdf_name = pdf_editor.pdf_output_name.split()[2]
+                try:
+                    pdf_name = pdf_editor.pdf_output_name.split()[2]
+                except IndexError:
+                    pdf_name = pdf_editor.pdf_output_name
          
                 
                 # start_time = time.time()
