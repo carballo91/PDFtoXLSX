@@ -1662,11 +1662,11 @@ class PDFEditor:
             is_lbl = False
             try:
                 text = self.extract_text(password=password)
-                """Delete this part"""
-                if password == "LBL22728" and output_name == "Agent Statements 22728 LBL22728ZZ 01-02-25 (1)":
-                    tables_from_pdf = self.extract_tables_from_pdf(password=password)
-                    is_lbl = True
-                    """Up to here"""
+                # """Delete this part"""
+                # if password == "LBL22728" and output_name == "Agent Statements 22728 LBL22728ZZ 01-02-25 (1)":
+                #     tables_from_pdf = self.extract_tables_from_pdf(password=password)
+                #     is_lbl = True
+                #     """Up to here"""
                 break
             except PDFPasswordIncorrect:
                 continue
