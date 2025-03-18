@@ -2143,8 +2143,8 @@ class PDFEditor:
         }
         text = self.extract_text()
         
-        carrier_agency_agency_id_date_pattern = r'\n(.*?)\n.*?\n(\d+\/\d+\/\d+)\nAgent:.*?\n([a-z ]+),?\s?#?(\w+)$'
-        carrier,agency,agency_id,date = re.search(carrier_agency_agency_id_date_pattern,text,re.IGNORECASE|re.MULTILINE|re.DOTALL).groups()
+        carrier_date_agency_agency_id_pattern = r'\n(.*?)\n.*?\n(\d+\/\d+\/\d+)\nAgent:.*?\n([a-z ]+),?\s?#?(\w+)$'
+        carrier,date,agency,agency_id = re.search(carrier_date_agency_agency_id_pattern,text,re.IGNORECASE|re.MULTILINE|re.DOTALL).groups()
         tables_pattern = r'account(.*?)balance forward'
         agents_pattern = r'^([a-z ]+)\n(.*?)total'
         clients_pattern = r'(\w+) (\d+) ([a-z, ]+) (\d+) (\d+\/\d+\/\d+) (\d+\/\d+\/\d+) ([0-9.-]+) ([0-9.%-]+) ([0-9.-]+)\s?([a-z*]{,2})?'
