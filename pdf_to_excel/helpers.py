@@ -58,7 +58,7 @@ class PDFEditor:
     
     def extract_text_delta(self,text,start=0, pages=None):
         """Extract text from specified pages or all pages in the PDF sequentially."""
-        
+        print(f"Type of delta text is {type(text)}")
         with pdfplumber.open(text) as pdf:
             if pages is None:
                 pages = range(start,len(pdf.pages))
@@ -66,7 +66,7 @@ class PDFEditor:
                 pages = range(pages)
             text_list = []
             for page_num in pages:
-                page_text = self.extract_page_text(text, page_num)
+                page_text = self.extract_page_text(pdf, page_num)
                 text_list.append(page_text)
                 # gc.collect()  # Optional: Call garbage collection after each page extraction
 
@@ -1414,7 +1414,8 @@ class PDFEditor:
         commissions_pattern = r'([a-zA-Z0-9 \/\'&\,.-]+) (?:\(\w+\) )?(\([a-zA-Z0-9 -]+\))(.*?)Total Entries'
         commissions_tables = re.findall(commissions_pattern,full_text,re.DOTALL|re.MULTILINE)
         
-        rows_pattern = r'(?:[0-9-]+) ([a-zA-Z -]+ )?([A-Z]{,4} [0-9]{4}) (-?\d?,?\d+.\d+) (-?\d?,?\d+.\d+) (-?\d?,?\d+.\d+) (-?\d?,?\d+.?\d?) (-?\$\d?,?\d+.\d+)'
+        # rows_pattern = r'(?:[0-9-]+) ([a-zA-Z -]+ )?([A-Z]{,4} [0-9]{4}) (-?\d?,?\d+.\d+) (-?\d?,?\d+.\d+) (-?\d?,?\d+.\d+) (-?\d?,?\d+.?\d?) (-?\$\d?,?\d+.\d+)'
+        rows_pattern = r"^(?:[0-9-]+) ([a-zA-Z -']+ )?([A-Z]{,4} [0-9]{4}) (-?\d?,?\d+.\d+) (-?\d?,?\d+.\d+) (-?\d?,?\d+.\d+) (-?\d?,?\d+.?\d?) (-?\$\d?,?\d+.\d+)"
         
         for tables in commissions_tables:
             group_name,group_number = tables[0],tables[1].strip("()")
