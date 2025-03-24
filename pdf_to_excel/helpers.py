@@ -12,6 +12,13 @@ class PDFEditor:
         self.pdf_file = pdf_file
         self.pdf_output_name = pdf_file.name.rstrip(".pdf")
         
+    def is_image(self):
+        with pdfplumber.open(self.pdf_file) as pdf:
+            for i, page in enumerate(pdf.pages):
+                print(f"Page {i+1}")
+                print("Text:", page.extract_text())
+                print("Is Image?", page.to_image() is not None)
+                
     def rotate_pdf(self, rotation=0):
         self.pdf_file.seek(0)
         pdf_bytes = self.pdf_file.read()  # Read the uploaded file as bytes
@@ -2179,7 +2186,173 @@ class PDFEditor:
                 data[i]["Converted from .pdf by"] = ""
         df = pd.DataFrame(data)
         return df,output_name 
-            
+    
+    def jefferson_health(self):
+        data = []
+        carrier = "JEFFERSON HEALTH"
+        fmo = "Pinnacle"
+        
+        text = self.extract_text()
+        date = re.search(r'(\d+\.\d+\.\d+)',text).group(1)
+        clients = re.findall(r'^(\d+) (.*?) (\d+) \w+ ([a-z-,]+ ?[a-z]{0,1}) ([a-z-,]+ ?[a-z]+) ([a-z]{2}) (\d+\/\d+\/\d+)( \d+\/\d+\/\d+)? ([0-9 .$]+)',text,re.IGNORECASE|re.MULTILINE|re.DOTALL)
+        for client in clients:
+            data.append({
+                "Carrier": carrier,
+                "FMO": fmo,
+                "Date": date,
+                "Agent NPN": client[0],
+                "Agent Name": client[1],
+                "Member ID": client[2],
+                "Member HICN": "",
+                "Member First": client[3],
+                "Member Last": client[4],
+                "Member State": client[5],
+                "Effective Date": client[6],
+                "Cancel Date": client[7],
+                "Commission": client[8],
+            })
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        df = pd.DataFrame(data)
+        return df,self.pdf_output_name 
+    
+    def health_first_fl(self):
+        data = []
+        carrier = "Health First FL"
+        text = self.extract_text()
+        agency,agency_id = re.search(r'detail\n(.*?)\n(\d+)',text,re.IGNORECASE).groups()
+        tables = re.findall(r'received amount\n(\w+)(.+)total',text,re.IGNORECASE|re.MULTILINE|re.DOTALL)
+        categories_pattern = r'^([a-z0-9 ]+)\n([a-z0-9 ]+)\n(.*?)total'
+        manual_adjustments_pattern = r'manual adjustments(.*?)total'
+        clients_pattern = r'^([a-z, ]+) (\d+) ([a-z, ]+) (\d+\/\d+) ([0-9 \-,.$]+) ([0-9 \-,.$]+) ([0-9]+) ([0-9 \-,.$]+) (\w+) ([0-9 \-.$]+)'
+        manual_clients_pattern = r'([a-zA-Z, ]+) (\d+) ([A-Z ]+) ([a-zA-Z ]+) (\d+\/\d+) ([0-9 $.\-]+)'
+        for table in tables:
+            categories = re.findall(categories_pattern,table[1],re.IGNORECASE|re.DOTALL|re.MULTILINE)
+            manual_adjustments = re.findall(manual_adjustments_pattern,table[1],re.IGNORECASE|re.MULTILINE|re.DOTALL)
+            for category in categories:
+                clients = re.findall(clients_pattern,category[2],re.DOTALL|re.IGNORECASE|re.MULTILINE)
+                for client in clients:
+                    data.append({
+                        "Carrier": carrier,
+                        "Agency": agency,
+                        "Agency ID": agency_id,
+                        "Type": table[0],
+                        "Category":category[0],
+                        "Description": category[1],
+                        "Broker": client[0],
+                        "Contract ID": client[1],
+                        "Name": client[2],
+                        "Prem Period": client[3],
+                        "Premium Invoiced": client[4],
+                        "Premium Received": client[5],
+                        "Count": client[6],
+                        "Rate": client[7],
+                        "Commission Type": client[8],
+                        "Commission Amount": client[9],
+                    })
+                    # print(client)
+            if manual_adjustments:
+                for manual in manual_adjustments:
+                    manual_clients = re.findall(manual_clients_pattern,manual,re.DOTALL|re.MULTILINE)
+                    for manual_client in manual_clients:
+                        data.append({
+                            "Carrier": carrier,
+                            "Agency": agency,
+                            "Agency ID": agency_id,
+                            "Type": "",
+                            "Category": "",
+                            "Description": "",
+                            "Broker": manual_client[0],
+                            "Contract ID": manual_client[1],
+                            "Name": manual_client[2],
+                            "Prem Period": manual_client[4],
+                            "Premium Invoiced": "",
+                            "Premium Received": "",
+                            "Count": "",
+                            "Rate": "",
+                            "Commission Type": manual_client[3],
+                            "Commission Amount": manual_client[5],
+                        })
+                        
+
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        df = pd.DataFrame(data)
+        return df,self.pdf_output_name 
+    
+    def inshore(self):
+        carrier = "Inshore"
+        data = []
+        text = self.extract_text()
+        date = re.search(r'statement date: (\d+\/\d+\/\d+)',text,re.IGNORECASE).group(1)
+        agent_no = re.search(r'agent #: (\d+)',text,re.IGNORECASE).group(1)
+        agent_name = re.search(r'agent name: ([a-z \.]+)',text,re.IGNORECASE).group(1)
+        
+        clients_pattern = r'([a-z &]+) (\w+) ([a-z ]+) (\d+\/\d+\/\d+) ([0-9\.\-$]+) (\d+%) ([0-9\.\-$]+)'
+        clients = re.findall(clients_pattern,text,re.MULTILINE|re.IGNORECASE|re.DOTALL)
+        for client in clients:
+            data.append({
+                "Carrier": carrier,
+                "Statement Date": date,
+                "Agent #": agent_no,
+                "Agent Name": agent_name,
+                "Client Name": client[0],
+                "Billing Group Number": client[1],
+                "Line of Business": client[2],
+                "Coverage Month": client[3],
+                "Premium Received": client[4],
+                "Comm Rate %": client[5],
+                "Commission Earned": client[6],
+            })
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        df = pd.DataFrame(data)
+        return df,self.pdf_output_name 
+    
+    def nippon_life(self):
+        carrier = "Nippon Life"
+        data = []
+        text = self.extract_text()
+
+        statements_pattern = r'pct amount(.*?)statement total'
+        date = re.search(r'period ending (\d+\/\d+\/\d+)',text,re.IGNORECASE).group(1)
+        producer_number = re.search(r'producer number ([0-9-]+)',text,re.IGNORECASE).group(1)
+        agents_pattern = r'([a-z -]+)(.*?)subtotal'
+        clients_pattern = r'(\w+)( [a-z\. ]+)? ([dentalifvsomdcby]+) ([0-9\.]+) (\d+\/\d+) (\d+%)( \d+)? (\d+%) ([0-9\.]+)'
+        
+        statements = re.findall(statements_pattern,text,re.MULTILINE|re.DOTALL|re.IGNORECASE)
+        client_name = ""
+        for statement in statements:
+            agents = re.findall(agents_pattern,statement,re.DOTALL|re.IGNORECASE|re.MULTILINE)
+            for agent in agents:
+                clients = re.findall(clients_pattern,agent[1],re.IGNORECASE|re.DOTALL|re.MULTILINE)
+                for client in clients:
+                    name = client[1]
+                    client_name = name if name else client_name
+                    data.append({
+                        "Carrier": carrier,
+                        "For Period Ending": date,
+                        "Producer Number": producer_number,
+                        "Client No./Unit No.": client[0],
+                        "Servicing Agent/Client Name": agent[0],
+                        "Client Name": client_name,
+                        "Line of Coverage": client[2],
+                        "Paid Amount": client[3],
+                        "Due for Period Ending": client[4],
+                        "Comm Rate": client[5],
+                        "Premium Scale Level": client[6],
+                        "Split Pct": client[7],
+                        "Commission Amount": client[8],
+                    })
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        df = pd.DataFrame(data)
+        return df,self.pdf_output_name 
+
     def save_to_excel(self, df, output_name):
         """Save DataFrame to an Excel file and return the file path."""
         if df is None or df.empty:
