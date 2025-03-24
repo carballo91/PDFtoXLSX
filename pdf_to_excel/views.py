@@ -41,7 +41,7 @@ def upload_pdf(request):
                 passwords.append(pw)
                 for password in passwords:
                     try:
-                        first_page_text = pdf_editor.extract_text(pages=2,password=password)
+                        first_page_text = pdf_editor.extract_text(pages=3,password=password)
                         break
                     except IndexError:
                         first_page_text = pdf_editor.extract_text(pages=1,password=password)
@@ -50,12 +50,12 @@ def upload_pdf(request):
                         continue
                 decoded = pdf_editor.processText(first_page_text)
                 # print(first_page_text)
-                # print(first_page_text)
+                print(first_page_text)
                 
                 df = None
                 output_name = ""
-                # print(first_page_text)
-                if "Earned Commission Statement" in first_page_text:
+  
+                if "Royal Neighbors of America" in first_page_text:
                     # Process using method for the PDF with "Run Date" and "Agents"
                     df, output_name = pdf_editor.process_pdf_type1()
                 elif "Foresters Financial" in first_page_text:
@@ -119,6 +119,14 @@ def upload_pdf(request):
                     df,output_name = pdf_editor.stevens_matthews()
                 elif "United American Insurance Company" in first_page_text:
                     df,output_name = pdf_editor.united_american()
+                elif "Agent NPN Agent Name Member ID Member HICN Member First Member Last Member State Effective Date" in first_page_text:
+                    df,output_name = pdf_editor.jefferson_health()
+                elif "Broker Contract ID Name Prem Premium Premium Count Rate Commission Type Commission" in first_page_text:
+                    df,output_name = pdf_editor.health_first_fl()
+                elif f"Number Month Received Rate % Earned" in first_page_text:
+                    df,output_name = pdf_editor.inshore()
+                elif "NIPPON LIFE BENEFITS" in first_page_text:
+                    df,output_name = pdf_editor.nippon_life()
                 # Add other conditions as needed...
                 # if df is None:
                 #     print(f"Df is none {output_name}")
