@@ -50,7 +50,7 @@ def upload_pdf(request):
                         continue
                 decoded = pdf_editor.processText(first_page_text)
                 # print(first_page_text)
-                print(first_page_text)
+                # print(first_page_text)
                 
                 df = None
                 output_name = ""
@@ -117,7 +117,7 @@ def upload_pdf(request):
                     df,output_name = pdf_editor.sentara_aca()
                 elif "STEPHENS-MATTHEWS MARKETING" in first_page_text:
                     df,output_name = pdf_editor.stevens_matthews()
-                elif "United American Insurance Company" in first_page_text:
+                elif "United American Insurance Company" in first_page_text or "Globe Life Insurance Company of New York" in first_page_text:
                     df,output_name = pdf_editor.united_american()
                 elif "Agent NPN Agent Name Member ID Member HICN Member First Member Last Member State Effective Date" in first_page_text:
                     df,output_name = pdf_editor.jefferson_health()
