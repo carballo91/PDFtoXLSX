@@ -1550,7 +1550,7 @@ class PDFEditor:
             for tpe in types:
                 
                 print(tpe[1])
-                clients = re.findall(clients_pattern,tpe[1],re.DOTALL|re.MULTILINE)
+                clients = re.findall(clients_pattern,tpe[1],re.DOTALL|re.MULTILINE|re.IGNORECASE)
                 print(len(clients))
                 adjusted = []
                 for client in clients:
