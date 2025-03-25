@@ -2153,9 +2153,11 @@ class PDFEditor:
         
         carrier_date_agency_agency_id_pattern = r'\n(.*?)\n.*?\n(\d+\/\d+\/\d+)\nAgent:.*?\n([a-z ]+),?\s?#?(\w+)$'
         carrier,date,agency,agency_id = re.search(carrier_date_agency_agency_id_pattern,text,re.IGNORECASE|re.MULTILINE|re.DOTALL).groups()
+        carrier = "Globe Life" if "Globe Life" in carrier else carrier
         tables_pattern = r'account(.*?)balance forward'
         agents_pattern = r'^([a-z ]+)\n(.*?)total'
-        clients_pattern = r'(\w+) (\d+) ([a-z, ]+) (\d+) (\d+\/\d+\/\d+) (\d+\/\d+\/\d+) ([0-9.-]+) ([0-9.%-]+) ([0-9.-]+)\s?([a-z*]{,2})?'
+        # clients_pattern = r'(\w+) (\d+) ([a-z, ]+) (\d+) (\d+\/\d+\/\d+) (\d+\/\d+\/\d+) ([0-9.-]+) ([0-9.%-]+) ([0-9.-]+)\s?([a-z*]{,2})?'
+        clients_pattern = r"(\w+ )?(\d+) ([a-z, ']+) (\d+) (\d+\/\d+\/\d+) (\d+\/\d+\/\d+) ([0-9.-]+) ([0-9.%-]+) ([0-9.-]+)\s?([a-z*]{,2})?$"
         
         tables = re.findall(tables_pattern,text,re.IGNORECASE|re.MULTILINE|re.DOTALL)
         
@@ -2163,14 +2165,17 @@ class PDFEditor:
             agents = re.findall(agents_pattern,table,re.IGNORECASE|re.DOTALL|re.MULTILINE)
             for agent in agents:
                 clients = re.findall(clients_pattern,agent[1],re.IGNORECASE|re.MULTILINE|re.DOTALL)
+                writing_agent_id = ""
                 for client in clients:
+                    writing_agent_id = client[0] if client[0] else writing_agent_id
+                        
                     data.append({
                         "Carrier": carrier,
                         "Agency": agency,
                         "Agency ID": agency_id,
                         "Date": date,
                         "Type": agent[0],
-                        "Writing Agent ID": client[0],
+                        "Writing Agent ID": writing_agent_id,
                         "Policy Number": client[1],
                         "Insured Name": client[2],
                         "Months Paid": client[3],
