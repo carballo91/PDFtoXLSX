@@ -6,6 +6,8 @@ import pdfplumber
 import time
 import fitz
 from pdfminer.pdfdocument import PDFPasswordIncorrect
+from collections import defaultdict
+import math
 
 class PDFEditor:
     def __init__(self, pdf_file):
@@ -224,61 +226,159 @@ class PDFEditor:
         
         return df, output_name
 
+    def group_words_by_line(self,words, y_tolerance=8):
+        lines = []
 
+        for word in words:
+            y = word['top']
+            for line in lines:
+                if abs(line['y'] - y) <= y_tolerance:
+                    line['words'].append(word)
+                    break
+            else:
+                lines.append({'y': y, 'words': [word]})
+
+        # Convert to {y: [words]} dict
+        grouped = defaultdict(list)
+        for line in lines:
+            grouped[round(line['y'], 2)].extend(line['words'])
+
+        return grouped
+
+    def sort_and_join_lines(self,lines):
+        sorted_lines = []
+        # print(f"Original lines are {lines}")
+        for y in sorted(lines):
+            # print(f"Lines y is {lines[y][0]["text"]}")
+            # for text in lines[y]:
+            #     print(text["text"])
+            line = sorted(lines[y], key=lambda w: (round(w['top'], 2), w['x0']))
+
+
+            text_line = ' '.join(w['text'] for w in line)
+            # print(f"Text lines are {text_line}")
+            
+            sorted_lines.append((y, text_line, line))
+        return sorted_lines
+
+    def smart_join_wrapped_lines(self,sorted_lines, x_tolerance=15):
+        final_rows = []
+        skip_next = False
+        # print(f"Sorted lines are {sorted_lines}")
+        for i in range(len(sorted_lines)):
+            if skip_next:
+                skip_next = False
+                continue
+
+            current_y, current_text, current_words = sorted_lines[i]
+
+            # Look ahead to next line
+            if i + 1 < len(sorted_lines):
+                next_y, next_text, next_words = sorted_lines[i + 1]
+
+                # Check if first word in next line aligns (x) with a word in current
+                if abs(next_words[0]['x0'] - current_words[-1]['x0']) < x_tolerance:
+                    # Merge lines (name wrap case)
+                    merged_text = current_text + ' ' + next_text
+                    final_rows.append(merged_text)
+                    skip_next = True
+                else:
+                    final_rows.append(current_text)
+            else:
+                final_rows.append(current_text)
+
+        return final_rows
+    
+    def parse_x_based_line(self, words, column_ranges):
+        words = sorted(words, key=lambda w: (round(w['top'], 2), w['x0']))
+
+        def get_text_in_range(x_min, x_max):
+            return ' '.join(w['text'] for w in words if x_min <= w['x0'] < x_max)
+
+        return [get_text_in_range(x_min, x_max) for (x_min, x_max) in column_ranges]
+
+    def clean_lines_main(self,column_ranges):
+        output_text = ""
+        with pdfplumber.open(self.pdf_file) as pdf:
+            for page_num, page in enumerate(pdf.pages):
+                # print(f"\n--- Page {page_num + 1} ---\n")
+                words = page.extract_words()
+
+                # Step 1: Group by line
+                lines = self.group_words_by_line(words)
+
+                # Step 2: Sort lines and join text
+                sorted_lines = self.sort_and_join_lines(lines)
+
+                for y, text, word_group in sorted_lines:
+                    parsed = self.parse_x_based_line(word_group,column_ranges)
+                    if parsed:
+                        output_text += ', '.join(parsed)
+                        output_text += "\n"
+                        # print(', '.join(parsed))
+        return output_text
+                    
     def forester_financial(self):
+        column_ranges = [
+            (70, 99),     # Producer ID
+            (100, 160),   # Producer Name
+            (161, 207),   # Insured Name
+            (209, 238),   # Policy ID
+            (263, 292),   # Plan Code
+            (302, 338),   # Date
+            (345, 401),   # Transaction Type
+            (431, 456),   # Amount
+            (457, 487),   # Repl Factor
+            (488, 514),   # ?? (might be dup)
+            (514, 535),   # ?? (might be dup)
+            (536, 560),   # Comp
+        ]
+        
+        commission_types = {
+            "FYC": "First Year Commission",
+            "FOV": "First Year Override",
+            "RYC": "Renewal Commission",
+            "ROV": "Renewal Override"
+        }
+
         """Process another type of PDF (define structure here)."""
         output_name = self.pdf_output_name
-        
-        # Extract text from the necessary pages and apply regex as needed
-        text = self.extract_text()  # Assume relevant data is on page 1
-
-        data_table = []
-        pattern = r"(\d+)\s([a-zA-Z-]+\s[a-zA-Z-]+(?:\s[a-zA-Z-]+){0,2})\s([a-zA-Z-]+\s[a-zA-Z-]+(?:\s[a-zA-Z-]+){0,2})\s(\d+)\s(\w+)\s(\d+\/\d+\/\d+)\s(Premium Payment)\s(\$(?:\d+,)?\d+.\d+)(\s\$?\w+)?(\s\$?\w+)?\s(\d+.\d+)\s(\(?\$(?:\d+,)?\d+.\d+\)?)"
-        text_parts = re.search(r"Renewal LIFE\nCommission(.*?)Renewal Override LIFE", text, re.DOTALL)
-        if text_parts:
-            match = re.findall(pattern,text_parts.group(1),re.DOTALL)
-            for renewal_commission_results in match:
-                data_table.append({
-                    "Carrier": "Foresters",
-                    "type" : "Renewal Commissions LIFE",
-                    "Writing Producer #":renewal_commission_results[0],
-                    "Writing Producer Name":renewal_commission_results[1],
-                    "Insured Name":renewal_commission_results[2],
-                    "Policy #": renewal_commission_results[3],
-                    "Plan Code": renewal_commission_results[4],
-                    "Transaction Date": renewal_commission_results[5],
-                    "Transaction Type": f"{renewal_commission_results[6]} US",
-                    "Compensation Basis Amount": renewal_commission_results[7],
-                    "% Repl. Factor":renewal_commission_results[8],
-                    "% Share": renewal_commission_results[9],
-                    "Comp Rate %": renewal_commission_results[10],
-                    "Amount Due": renewal_commission_results[11]})
-                   
-        renewal_override = re.search(r"Renewal Override LIFE(.*?)Current Balance:",text,re.DOTALL)
-
-        match = re.findall(pattern,renewal_override.group(1),re.DOTALL)
-        for renewal_override_results in match:
-            data_table.append({
-                "Carrier": "Foresters",
-                "type" : "Renewal Override LIFE",
-                "Writing Producer #":renewal_override_results[0],
-                "Writing Producer Name":renewal_override_results[1],
-                "Insured Name":renewal_override_results[2],
-                "Policy #": renewal_override_results[3],
-                "Plan Code": renewal_override_results[4],
-                "Transaction Date": renewal_override_results[5],
-                "Transaction Type": f"{renewal_override_results[6]} US",
-                "Compensation Basis Amount": renewal_override_results[7],
-                "% Repl. Factor":renewal_override_results[8],
-                "% Share": renewal_override_results[9],
-                "Comp Rate %": renewal_override_results[10],
-                "Amount Due": renewal_override_results[11]})
-        
+        data = []
+        text = self.clean_lines_main(column_ranges)
+            
+        tables_pattern = r'balance, forward:, , \$[0-9\.]+\n(.*?)current, balance'
+        commissions_pattern = r'(.*?)total for, (\w+)'
+        agents_pattern = r'^(\d+), ([a-z \-\,\.]+), ([a-z \-\,\.]+), (\d+), ([a-z0-9 ]+), ([0-9\/]+), ([a-z ]+), ([0-9\.\$]+),([0-9\. ]+),([0-9\. ]+), ([0-9\.]+), ([0-9\.\$]+)$'
+        tables = re.findall(tables_pattern,text,re.DOTALL|re.MULTILINE|re.IGNORECASE)
+        for table in tables:
+            commissions = re.findall(commissions_pattern,table,re.MULTILINE|re.DOTALL|re.IGNORECASE)
+            for commission in commissions:
+                commission_type = commission[1].upper()
+                agents = re.findall(agents_pattern,commission[0],re.MULTILINE|re.DOTALL|re.IGNORECASE)
+                for client in agents:
+                    data.append(
+                        {
+                            "Carrier": "Foresters",
+                            "type" : commission_types[commission_type],
+                            "Writing Producer #": client[0],
+                            "Writing Producer Name":client[1],
+                            "Insured Name":client[2],
+                            "Policy #": client[3],
+                            "Plan Code": client[4],
+                            "Transaction Date": client[5],
+                            "Transaction Type": client[6],
+                            "Compensation Basis Amount": client[7],
+                            "% Repl. Factor":client[8],
+                            "% Share": client[9],
+                            "Comp Rate %": client[10],
+                            "Amount Due": client[11]
+                        }
+                    )
 
         # Add custom column
         for i in range(1):
-            data_table[i]["Converted from .pdf by"] = ""
-        df = pd.DataFrame(data_table)
+            data[i]["Converted from .pdf by"] = ""
+        df = pd.DataFrame(data)
 
         return df, output_name
     # ------------------------------------------- ASSURITY PDF EXTRA FUNCTIONS --------------------------------------------------
