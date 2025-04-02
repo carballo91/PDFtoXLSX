@@ -259,6 +259,7 @@ class PDFEditor:
             # print(f"Text lines are {text_line}")
             
             sorted_lines.append((y, text_line, line))
+        print(f"Sorted lines are {sorted_lines}")
         return sorted_lines
 
     def smart_join_wrapped_lines(self,sorted_lines, x_tolerance=15):
@@ -291,15 +292,16 @@ class PDFEditor:
     
     def parse_x_based_line(self, words, column_ranges):
         words = sorted(words, key=lambda w: (round(w['top'], 2), w['x0']))
+        print(f"words are {words}")
 
         def get_text_in_range(x_min, x_max):
             return ' '.join(w['text'] for w in words if x_min <= w['x0'] < x_max)
 
         return [get_text_in_range(x_min, x_max) for (x_min, x_max) in column_ranges]
 
-    def clean_lines_main(self,column_ranges):
+    def clean_lines_main(self,column_ranges,password=None):
         output_text = ""
-        with pdfplumber.open(self.pdf_file) as pdf:
+        with pdfplumber.open(self.pdf_file,password=password) as pdf:
             for page_num, page in enumerate(pdf.pages):
                 # print(f"\n--- Page {page_num + 1} ---\n")
                 words = page.extract_words()
@@ -1680,54 +1682,92 @@ class PDFEditor:
         return df,output_name 
     
     def life_shield(self):
+            # (98, 161),   # Insured Name
+            # (190, 219),   # Policy ID
+            # (232, 244), 
+        column_ranges = [
+            (10, 72),     # Producer ID
+            (74, 244),   # Producer Name
+            (257, 269),   # Date
+            (307, 341),   # Transaction Type
+            (349, 378),   # Amount
+            (378, 451),   # Repl Factor
+            (451, 524),   # ?? (might be dup)
+            (524, 593),   # ?? (might be dup)
+            (593, 618),
+            (618, 691),
+            (715, 748),# Comp
+        ]
+        
         carrier = "LifeShield"
-        text = self.extract_text(password="2646")
-        # print(text)
+        passwords = ["2646","7964"]
+
+        for password in passwords:
+            try:
+                test = self.clean_lines_main(column_ranges=column_ranges,password=password)
+                break
+            except PDFPasswordIncorrect:
+                continue
+        # print(f"TEST IS {test}")        
         data = []
 
         output_name = self.pdf_output_name
-        date_pattern = r'([0-9 \/]+) B e g i n n i n g B a l a n c e'
-        date = re.search(date_pattern,text).group(1)
-        date = date.replace(" ","")
-        
-        agency_pattern = r'C o m m i s s i o n ([A-Z0-9 &]+) Lifeshield'
-        agency = re.search(agency_pattern,text,re.IGNORECASE).group(1)
-        
-        statements_pattern = r'C r e d i t s(.*)Statement Totals'
-        statements = re.findall(statements_pattern,text,re.MULTILINE|re.DOTALL)
-        
-        tables_pattern = r'([a-z0-9- ]+)\n(.*?)Life Subtotal [a-z0-9 .*-]+\n?'
-        managers_pattern = r'(.*?)Mgr ([a-z ,]+) \((\w+)\)'
-        agents_pattern = r'(\w+) (\d+) ([a-z, ]+) (\d+\/\d+) (\d+) (\d+) ([0-9,.]+) ([0-9,.]+) -?.*?([0-9,.]+)\n(?:WAgt ([a-z ,]+) \((\w+)\) [0-9.*]+ ([0-9.]+)\* -?([0-9.]+)\* -?([0-9.]+)\* -?([0-9.]+)\* -?([0-9.]+)\*.*?)'
-        agents_pattern = r'(.*?)WAgt ([a-z ,]+) \((\w+)\) [0-9.*]+ ([0-9.-]+)\* ([0-9.-]+)\* ([0-9.-]+)\* ([0-9.-]+)\* ([0-9.-]+)\* ([0-9.-]+)\*'
-        clients_pattern = r'(\w+) (\d+) ([a-z, ]+) (\d+\/\d+) (\d+) (\d+) ([0-9,.]+) ([0-9,.]+) ([0-9.,-]+ )?([0-9.,-]+ )?([0-9.,-]+ )?([0-9.,-]+ )?([0-9.,-]+ )?([0-9.,-]+)?'
-        for statement in statements:
-            tables = re.findall(tables_pattern,statement,re.MULTILINE|re.DOTALL|re.IGNORECASE)
-            for table in tables:
-                category = table[0]
-                managers = re.findall(managers_pattern,table[1],re.MULTILINE|re.DOTALL|re.IGNORECASE)
-                for manager in managers:
-                    manager_name = manager[1]
-                    manager_id = manager[2]
-                   
-                    agents = re.findall(agents_pattern,manager[0],re.MULTILINE|re.DOTALL|re.IGNORECASE)
-                    for agent in agents:
-                        data_to_map = [agent[3],agent[4],agent[5],agent[6],agent[7],agent[8]]
-                        clients = re.findall(clients_pattern,agent[0],re.MULTILINE|re.DOTALL|re.IGNORECASE)
-                        # print(data_to_map)
+
+        if test:
+            statements_pattern = r' e d i t s(.*?)Totals'
+            tables_pattern = r'(^[a-z0-9- ,]+)\n(.*?)[Life|h] Subtotal[a-z0-9 .*-,]+\n?'
+            managers_pattern = r'(.*?)Mgr, ([a-z ,]+) \((\w+)\)'
+            agents_pattern = r'(.*?)WAgt, ([a-z ,]+) \((\w+)\)'
+            clients_pattern = r'^(\w+), (\d+) ([a-z, ]+) (\d+\/\d+) (\d+), (\d+), ([0-9\.,]+),([0-9\. ,]+),([0-9\. ,]+),([0-9\. ,]+),([0-9\. ,]+),([0-9\. ,]+),([0-9\. ,]+),([a-z0-9\. ,]+)'
+            
+            statements = re.findall(statements_pattern,test,re.MULTILINE|re.DOTALL)
+            agency_pattern = r'C o m m i s s i o n, ([A-Z0-9 &,]+) national'
+            agency = re.search(agency_pattern,test,re.IGNORECASE).group(1)
+            agency = agency.strip(", ")
+            print(f"Agency is {agency}")
+            for statement in statements:
+                tables = re.findall(tables_pattern,statement,re.MULTILINE|re.DOTALL|re.IGNORECASE)
+                for table in tables:
+                    category = table[0].strip(", ")
+                    managers = re.findall(managers_pattern,table[1],re.MULTILINE|re.DOTALL|re.IGNORECASE)
+                    if managers:
+                        for manager in managers:
+                            manager_name = manager[1]
+                            manager_id = manager[2]
+                            agents = re.findall(agents_pattern,manager[0],re.DOTALL|re.IGNORECASE|re.MULTILINE)
+                            for agent in agents:
+                                w_agent = agent[1]
+                                w_agent_id = agent[2]
+                                clients = re.findall(clients_pattern,agent[0],re.IGNORECASE|re.MULTILINE|re.DOTALL)
+                                for client in clients:
+                                    print(client)
+                                    data.append({
+                                        "Carrier": carrier,
+                                        "Agency": agency,
+                                        "Category": category,
+                                        "Policy Number": client[0],
+                                        "Pol/Ridr": client[1],
+                                        "Name or Description": client[2],
+                                        "Date Paid": client[3],
+                                        "Mode Pmts": client[4],
+                                        "Pol Yr": client[5],
+                                        "WAgt Name": w_agent,
+                                        "WAgt ID": w_agent_id,
+                                        "Mgr Name": manager_name,
+                                        "Mgr ID": manager_id,
+                                        "Premium": client[6],
+                                        "Rate": client[7],
+                                        "First Year": client[8],
+                                        "Renewal": client[9],
+                                        "Single": client[10],
+                                        "Advance or ChgBack": client[11],
+                                        "Charges": client[12],
+                                        "Credits": client[13],
+                                    })
+                    else:
+                        clients = re.findall(clients_pattern,table[1],re.IGNORECASE|re.MULTILINE|re.DOTALL)
                         for client in clients:
-                            data_needs_mapped = list(client[8:])
-                            non_empty_data = [i for i in data_needs_mapped if i != ""]
-                            count = 0
-                            client_data = []
-                            print(non_empty_data)
-                            for i in range(len(data_to_map)):
-                                if data_to_map[i] != "0.00":
-                                    client_data.append(non_empty_data[count])
-                                    count += 1
-                                else:
-                                    client_data.append("0.00")
-                            print(client_data)                     
+                            print(client)
                             data.append({
                                 "Carrier": carrier,
                                 "Agency": agency,
@@ -1735,21 +1775,21 @@ class PDFEditor:
                                 "Policy Number": client[0],
                                 "Pol/Ridr": client[1],
                                 "Name or Description": client[2],
-                                "Date Paid": date,#client[3],
+                                "Date Paid": client[3],
                                 "Mode Pmts": client[4],
                                 "Pol Yr": client[5],
-                                "WAgt Name": agent[1],
-                                "WAgt ID": agent[2],
-                                "Mgr Name": manager_name,
-                                "Mgr ID": manager_id,
+                                "WAgt Name": "",
+                                "WAgt ID": "",
+                                "Mgr Name": "",
+                                "Mgr ID": "",
                                 "Premium": client[6],
                                 "Rate": client[7],
-                                "First Year": client_data[0],
-                                "Renewal": client_data[1],
-                                "Single": client_data[2],
-                                "Advance or ChgBack": client_data[3],
-                                "Charges": client_data[4],
-                                "Credits": client_data[5],
+                                "First Year": client[8],
+                                "Renewal": client[9],
+                                "Single": client[10],
+                                "Advance or ChgBack": client[11],
+                                "Charges": client[12],
+                                "Credits": client[13],
                             })
         if len(data) >= 1:
             for i in range(1):
@@ -2457,6 +2497,61 @@ class PDFEditor:
                 data[i]["Converted from .pdf by"] = ""
         df = pd.DataFrame(data)
         return df,self.pdf_output_name 
+    
+    def kaiser_georgia(self):
+        carrier = "Kaiser Permanente Georgia"
+        data = []
+        text = self.extract_text()
+        print(text)
+     
+        vendor_vendor_id_agency_date_pattern = r'vendor # (\w+).*?vendor id (\d+)\n(.*?)commission month: ([0-9 -\/]+)'
+        agent_clients_pattern = r'mpf: ([a-z, ]+)(.*?)member count'
+        clients_pattern = r'^([a-z]+,[a-z]+,[a-z]+|[a-z]+,[a-z]+|[a-z]+ ?-?[a-z]+,[a-z]+)( [a-z]{,2})?( \d+\/\d+\/\d+)?( \d+\/\d+\/\d+)?( [0-9\$\.,]+)?( [0-9\$\.,]+)?( [0-9\$\.,]+)'
+        
+        vendor_vendor_id_agency_date = re.search(vendor_vendor_id_agency_date_pattern,text,re.IGNORECASE|re.MULTILINE|re.DOTALL)
+        vendor = vendor_vendor_id_agency_date.group(1)
+        vendor_id = vendor_vendor_id_agency_date.group(2)
+        agency = vendor_vendor_id_agency_date.group(3)
+        date = vendor_vendor_id_agency_date.group(4)
+ 
+        agent_tables = re.findall(agent_clients_pattern,text,re.IGNORECASE|re.MULTILINE|re.DOTALL)
+        for table in agent_tables:
+            agent = table[0]
+            clients = re.findall(clients_pattern,table[1],re.IGNORECASE|re.MULTILINE|re.DOTALL)
+            plan = ""
+            eff_date = ""
+            payment_trans = ""
+            amount_received = ""
+            comm_rate = ""
+            
+            for client in clients:   
+                if client[1] != "":
+                    plan = client[1]
+                    eff_date = client[2]
+                    payment_trans = client[3]
+                    amount_received = client[4]
+                    comm_rate = client[5]
+                data.append({
+                    "Carrier": carrier,
+                    "Agency": agency,
+                    "Vendor #": vendor,
+                    "AP Vendor ID": vendor_id,
+                    "Commission Month": date,
+                    "Agent Name": agent,
+                    "Member Name":client[0],
+                    "Plan":plan,
+                    "Member Effective Date": eff_date,
+                    "Date of Last Payment Trans.": payment_trans,
+                    "Amount Received": amount_received,
+                    "Comm Rate": comm_rate,
+                    "Commission": client[6],
+                })
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        df = pd.DataFrame(data)
+        return df,self.pdf_output_name 
+            
 
     def save_to_excel(self, df, output_name):
         """Save DataFrame to an Excel file and return the file path."""
