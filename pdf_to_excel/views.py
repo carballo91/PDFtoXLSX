@@ -127,8 +127,8 @@ def upload_pdf(request):
                     df,output_name = pdf_editor.inshore()
                 elif "NIPPON LIFE BENEFITS" in first_page_text:
                     df,output_name = pdf_editor.nippon_life()
-                # elif "Kaiser Foundation Health Plan of Georgia" in first_page_text:
-                #     df,output_name = pdf_editor.kaiser_georgia()
+                elif "Kaiser Foundation Health Plan of Georgia" in first_page_text:
+                    df,output_name = pdf_editor.kaiser_georgia()
                 # Add other conditions as needed...
                 # if df is None:
                 #     print(f"Df is none {output_name}")
