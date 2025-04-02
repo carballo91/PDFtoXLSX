@@ -259,7 +259,7 @@ class PDFEditor:
             # print(f"Text lines are {text_line}")
             
             sorted_lines.append((y, text_line, line))
-        print(f"Sorted lines are {sorted_lines}")
+        # print(f"Sorted lines are {sorted_lines}")
         return sorted_lines
 
     def smart_join_wrapped_lines(self,sorted_lines, x_tolerance=15):
@@ -292,7 +292,7 @@ class PDFEditor:
     
     def parse_x_based_line(self, words, column_ranges):
         words = sorted(words, key=lambda w: (round(w['top'], 2), w['x0']))
-        print(f"words are {words}")
+        # print(f"words are {words}")
 
         def get_text_in_range(x_min, x_max):
             return ' '.join(w['text'] for w in words if x_min <= w['x0'] < x_max)
@@ -1724,7 +1724,7 @@ class PDFEditor:
             agency_pattern = r'C o m m i s s i o n, ([A-Z0-9 &,]+) national'
             agency = re.search(agency_pattern,test,re.IGNORECASE).group(1)
             agency = agency.strip(", ")
-            print(f"Agency is {agency}")
+
             for statement in statements:
                 tables = re.findall(tables_pattern,statement,re.MULTILINE|re.DOTALL|re.IGNORECASE)
                 for table in tables:
@@ -1740,7 +1740,7 @@ class PDFEditor:
                                 w_agent_id = agent[2]
                                 clients = re.findall(clients_pattern,agent[0],re.IGNORECASE|re.MULTILINE|re.DOTALL)
                                 for client in clients:
-                                    print(client)
+             
                                     data.append({
                                         "Carrier": carrier,
                                         "Agency": agency,
@@ -1767,7 +1767,7 @@ class PDFEditor:
                     else:
                         clients = re.findall(clients_pattern,table[1],re.IGNORECASE|re.MULTILINE|re.DOTALL)
                         for client in clients:
-                            print(client)
+                 
                             data.append({
                                 "Carrier": carrier,
                                 "Agency": agency,
