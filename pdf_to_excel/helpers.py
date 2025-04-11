@@ -1151,15 +1151,16 @@ class PDFEditor:
         output_name = self.pdf_output_name
         data = []
 
-        text = self.extract_text(start=2)
+        text = self.extract_text()
+        # print(text)
         
         period_ending_pattern = r'For Period Ending: ([a-zA-Z]+ [0-9]{,2},? [0-9]{4})'
         state_pattern = r'State: ([a-zA-Z]+)'
         producer_pattern = r'([0-9]+)-\w+-([a-zA-Z0-9 ]+)'
-        producers_pattern = r'Producer\/Sub-Producer: (.*)Totals for GA\/Producer'
+        producers_pattern = r'Producer\/Sub-Producer: (.*)(?:Totals for GA\/Producer|producer statement total)'
            
         try:
-            producers = re.findall(producers_pattern,text,re.DOTALL)
+            producers = re.findall(producers_pattern,text,re.DOTALL|re.IGNORECASE)
             period_ending = re.search(period_ending_pattern,text).group(1)
             state = re.search(state_pattern,text).group(1)
         except AttributeError:
@@ -1173,14 +1174,20 @@ class PDFEditor:
         carrier = f"BCBS {state_initials}"
         
         for producer in producers:
+            # print(f"Producer is {producer}")
             producer_info = re.search(producer_pattern,producer)
             producer_no = producer_info.group(1)
             producer_name = producer_info.group(2)
-            producer_tables = re.findall(r'^Individual (.*?)Totals for Individual',producer,re.MULTILINE | re.DOTALL)
-            
+            producer_tables = re.findall(r'^(.*?)Totals?(?: for)? Individual ([A-Za-z ]+) [0-9.]+$',producer,re.MULTILINE | re.DOTALL|re.IGNORECASE)
+            # print(f"Producer tables are {producer_tables}")
+            # print(f"{len(producer_tables)}")
+            # print(producer_tables)
+            # print(producer)
             for table in producer_tables:
-                commission_type = re.search(r'([a-zA-Z0-9 ]+)\nSource ID',table).group(1)
-                rows = re.findall(r'([0-9]+) ?([a-zA-Z, ]+) (\d+\/\d+\/\d+) ?(\d+\/\d+\/\d+ )?([a-zA-Z\/\$\%_ ]+) (\d+ )?([0-9.]+) (\d+) ([0-9]{2}\/[0-9]{2}\/[0-9]{2}) ?([0-9.]+ )?([0-9.\$\%]+)?\n(\w+) (\w+¬?) ([0-9]{2}\/[0-9]{2}\/[0-9]{2}) (\w+) ([0-9]{2}\/[0-9]{2}\/[0-9]{2}) ([0-9.]+) ([0-9.]+ )?([0-9.]+)',table,re.DOTALL|re.MULTILINE)
+                # print(f"Table is {table}")
+                
+                commission_type = table[1]
+                rows = re.findall(r'([0-9]+) ?([a-zA-Z, ]+) (\d+\/\d+\/\d+) ?(\d+\/\d+\/\d+ )?([a-zA-Z\/\$\%_ ]+) (-?\d+ )?([0-9.]+) (\d+) ([0-9]{2}\/[0-9]{2}\/[0-9]{2}) ?(-?[0-9.]+ )?([0-9.\$\%]+)?(?: healthm)?.*?(\w+) (\w+¬?) ([0-9]{2}\/[0-9]{2}\/[0-9]{2}) (\w+) ([0-9]{2}\/[0-9]{2}\/[0-9]{2}) (-?[0-9.]+) ([0-9.]+ )?([0-9.]+)',table[0],re.DOTALL|re.MULTILINE)
                 for column in rows:
                     data.append({
                         "Period Ending": period_ending,
