@@ -127,6 +127,8 @@ def upload_pdf(request):
                     df,output_name = pdf_editor.inshore()
                 elif "NIPPON LIFE BENEFITS" in first_page_text:
                     df,output_name = pdf_editor.nippon_life()
+                elif "POLICY INSURED'S NAME PLAN CODE PAID TO PREMIUM PERCENT EARNED AMT TO PAY FICA APPL TO ADV BALANCE" in first_page_text:
+                    df,output_name = pdf_editor.cigna_ms_lisa()
                 # elif "Kaiser Foundation Health Plan of Georgia" in first_page_text:
                 #     df,output_name = pdf_editor.kaiser_georgia()
                 # Add other conditions as needed...
