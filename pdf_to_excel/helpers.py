@@ -226,7 +226,7 @@ class PDFEditor:
         
         return df, output_name
 
-    def group_words_by_line(self,words, y_tolerance=8):
+    def group_words_by_line(self,words, y_tolerance):
         lines = []
 
         for word in words:
@@ -292,14 +292,14 @@ class PDFEditor:
     
     def parse_x_based_line(self, words, column_ranges):
         words = sorted(words, key=lambda w: (round(w['top'], 2), w['x0']))
-        # print(f"words are {words}")
+        print(f"words are {words}")
 
         def get_text_in_range(x_min, x_max):
             return ' '.join(w['text'] for w in words if x_min <= w['x0'] < x_max)
 
         return [get_text_in_range(x_min, x_max) for (x_min, x_max) in column_ranges]
 
-    def clean_lines_main(self,column_ranges,password=None):
+    def clean_lines_main(self,column_ranges,password=None,y_tolerance=8):
         output_text = ""
         with pdfplumber.open(self.pdf_file,password=password) as pdf:
             for page_num, page in enumerate(pdf.pages):
@@ -307,7 +307,7 @@ class PDFEditor:
                 words = page.extract_words()
 
                 # Step 1: Group by line
-                lines = self.group_words_by_line(words)
+                lines = self.group_words_by_line(words,y_tolerance=y_tolerance)
 
                 # Step 2: Sort lines and join text
                 sorted_lines = self.sort_and_join_lines(lines)
@@ -2509,7 +2509,7 @@ class PDFEditor:
         carrier = "Kaiser Permanente Georgia"
         data = []
         text = self.extract_text()
-        print(text)
+        # print(text)
      
         vendor_vendor_id_agency_date_pattern = r'vendor # (\w+).*?vendor id (\d+)\n(.*?)commission month: ([0-9 -\/]+)'
         agent_clients_pattern = r'mpf: ([a-z, ]+)(.*?)member count'
@@ -2558,6 +2558,56 @@ class PDFEditor:
                 data[i]["Converted from .pdf by"] = ""
         df = pd.DataFrame(data)
         return df,self.pdf_output_name 
+    
+    def cigna_ms_lisa(self):
+        carrier = "Cigna Supplemental"
+        data = []
+        column_ranges = [
+            (24,65),
+            (67,150),
+            (153,192),
+            (193,228),
+            (246,273),
+            (275,315),
+            (320,355),
+            (360,400),
+            (401,430),
+            (443,473),
+            ]
+        text = self.clean_lines_main(column_ranges=column_ranges,y_tolerance=6)
+        first_page = self.extract_text_from_range(start_page=0,end_page=1)
+        run_date = re.search(r'run date *(\w+ \d+, \d+)',first_page,re.IGNORECASE)
+        r_date = run_date.group(1)
+        agent_period_ending = re.search(r'(.*?) *period ending *(\w+ \d+, \d+)',first_page,re.IGNORECASE)
+        agent,period_ending = agent_period_ending.group(1),agent_period_ending.group(2)
+        
+        insured_info_pattern = r'^(\w+), ([a-z ,-]+), (\w+), ([0-9\/]+), ([0-9\.]+), ([0-9\.]+), ([0-9\.]+), ([0-9\.]+)?, *([0-9\.]+)?, *([0-9\.]+)?'
+        insured_info = re.findall(insured_info_pattern,text,re.IGNORECASE|re.MULTILINE)
+
+        for insured in insured_info:
+            
+            data.append({
+                "Carrier": carrier,
+                "Earning Agent Name": agent,
+                "Run Date": r_date,
+                "Period Ending": period_ending,
+                "Policy": insured[0],
+                "Insured's Name": insured[1],
+                "Plan Code": insured[2],
+                "Paid To": insured[3],
+                "Premium": insured[4],
+                "Per Cent": insured[5],
+                "Earned": insured[6],
+                "Amt to Pay": insured[7],
+                "FICA": insured[8],
+                "Apply to Adv": insured[9],
+            })
+        if len(data) >= 1:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        df = pd.DataFrame(data)
+        return df,self.pdf_output_name 
+   
             
 
     def save_to_excel(self, df, output_name):
