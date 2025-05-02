@@ -529,42 +529,56 @@ class PDFEditor:
         df = pd.DataFrame(data)
         return df, output_name
 
-    def bcbs_la_commisions(self):
+    def bcbs_la_commisions(self,carrier):
         output_name = self.pdf_output_name
+        data = []
         text = self.extract_text()
+
         date = re.search(r"Activity Ending Date: (\d+\/\d+\/\d+)",text,re.DOTALL)
         date = date.group(1)
-        #Info patterns
-        pattern = r"(\d+)\s([a-zA-Z]+(?:\s[a-zA-Z]+){0,3})\s(\w+)\s(\d+(?:\s[a-zA-Z]+){0,4})\s(\w+)\s(.*?)(\d+\/\d+\/\d+)\s(.*?)(\d+\/\d+\/\d+)\s(\d+\/\d+)\s(\d+)\s(\w+)\s(\$ (?:\d+,)?\d+.\d+)"
-        tpe = re.findall(r"Writing Producer (\d+)\s(\w+\s\w+)\n(\w+(?:\s\w+)?)\n(.*?)Total for",text,re.DOTALL)
 
-        data = []
-        for t in tpe:
-     
-            x = re.findall(rf"{pattern}",t[3])
+        statement_type_pattern = r'\w+, \w+, \d+ ([a-z ]+)'
+        statement_type = re.search(statement_type_pattern,text,re.DOTALL|re.MULTILINE|re.IGNORECASE)
+        
+        producers_pattern = r'Writing Producer (\d+)\s(\w+\s\w+)\n(.*?)Total for Writing Producer'
+        producers = re.findall(producers_pattern,text,re.MULTILINE|re.DOTALL)
+        
+        statements_pattern = r'^([a-z ]+)(.*?)total for'
+        
+        clients_pattern = r'^(\d+)\s([a-zA-Z]+(?:\s[a-zA-Z-]+){0,3})\s(\w+)\s(\d+(?:\s[a-zA-Z]+){0,4})\s(\w+)\s(\w+\s)?(\d+\/\d+\/\d+)\s(\d+\/\d+\/\d+\s)?(\d+\/\d+\/\d+)\s(\d+\/\d+)\s(\d+\s)?(\w+)\s(\(?\$ (?:\d+,)?\d+\.\d+\)?)$'
+        
+        
+        for producer in producers:
+            statements = re.findall(statements_pattern,producer[2],re.MULTILINE|re.IGNORECASE|re.DOTALL)
+            writing_producer = producer[0]
+            writing_id = producer[1]
 
-            for y in x:
-                data.append({
-                    "Carrier": "BCBS LA",
-                    "Statement Type": "Statements of Commissions",
-                    "Date": date,
-                    "Type": t[2],
-                    "Writing Producer": t[1],
-                    "Writing ID": t[0],
-                    "Member ID": y[0],
-                    "Name": y[1],
-                    "Company": y[2],
-                    "Product": y[3],
-                    "HICN": y[4],
-                    "Override": y[5],
-                    "Effective Date": y[6],
-                    "Term Date": y[7],
-                    "Signed Date": y[8],
-                    "Period": y[9],
-                    "Cycle Year": y[10],
-                    "Retro": y[11],
-                    "Amount": y[12], 
-                })
+            for statement in statements:
+                statement_type = statement[0]
+
+                clients = re.findall(clients_pattern,statement[1],re.MULTILINE|re.DOTALL|re.IGNORECASE)
+                for client in clients:
+                    data.append({
+                        "Carrier": carrier,
+                        "Statement Type": statement_type,
+                        "Date": date,
+                        "Type": statement_type,
+                        "Writing Producer": writing_producer,
+                        "Writing ID": writing_id,
+                        "Member ID": client[0],
+                        "Name": client[1],
+                        "Company": client[2],
+                        "Product": client[3],
+                        "HICN": client[4],
+                        "Override": client[5],
+                        "Effective Date": client[6],
+                        "Term Date": client[7],
+                        "Signed Date": client[8],
+                        "Period": client[9],
+                        "Cycle Year": client[10],
+                        "Retro": client[11],
+                        "Amount": client[12], 
+                    })
 
         for i in range(1):
             data[i]["Converted from .pdf by"] = ""
@@ -2559,22 +2573,11 @@ class PDFEditor:
         df = pd.DataFrame(data)
         return df,self.pdf_output_name 
     
-    def cigna_ms_lisa(self):
+    def cigna_ms_lisa(self,columns):
         carrier = "Cigna Supplemental"
         data = []
-        column_ranges = [
-            (24,65),
-            (67,150),
-            (153,192),
-            (193,228),
-            (246,273),
-            (275,315),
-            (320,355),
-            (360,400),
-            (401,430),
-            (443,473),
-            ]
-        text = self.clean_lines_main(column_ranges=column_ranges,y_tolerance=6)
+        text = self.clean_lines_main(column_ranges=columns,y_tolerance=6)
+        print(f"Text is {text}")
         first_page = self.extract_text_from_range(start_page=0,end_page=1)
         run_date = re.search(r'run date *(\w+ \d+, \d+)',first_page,re.IGNORECASE)
         r_date = run_date.group(1)
@@ -2607,8 +2610,104 @@ class PDFEditor:
                 data[i]["Converted from .pdf by"] = ""
         df = pd.DataFrame(data)
         return df,self.pdf_output_name 
+    
+    def bcbs_lousiana(self,carrier):
+        output_name = self.pdf_output_name
+        data = []
+        text = self.extract_text()
+
+        date = re.search(r"Activity Ending Date: (\d+\/\d+\/\d+)",text,re.DOTALL)
+        date = date.group(1)
+
+        statement_type_pattern = r'\w+, \w+, \d+ ([a-z ]+)'
+        statement_type = re.search(statement_type_pattern,text,re.DOTALL|re.MULTILINE|re.IGNORECASE)
+        
+        producers_pattern = r'Writing Producer (\d+)\s(\w+\s\w+)\n(.*?)Total for Writing Producer'
+        producers = re.findall(producers_pattern,text,re.MULTILINE|re.DOTALL)
+        
+        statements_pattern = r'^([a-z ]+)(.*?)total for'
+        
+        clients_pattern = r'^(\d+)\s([a-zA-Z]+(?:\s[a-zA-Z-]+){0,3})\s(\w+)\s(\d+(?:\s[a-zA-Z]+){0,4})\s(\w+)\s(\w+\s)?(\d+\/\d+\/\d+)\s(\d+\/\d+\/\d+\s)?(\d+\/\d+\/\d+)\s(\d+\/\d+)\s(\d+\s)?(\w+)\s(\(?\$ (?:\d+,)?\d+\.\d+\)?)$'
+        
+        
+        count = 0
+        for producer in producers:
+            statements = re.findall(statements_pattern,producer[2],re.MULTILINE|re.IGNORECASE|re.DOTALL)
+            writing_producer = producer[0]
+            writing_id = producer[1]
+
+            for statement in statements:
+                statement_type = statement[0]
+
+                clients = re.findall(clients_pattern,statement[1],re.MULTILINE|re.DOTALL|re.IGNORECASE)
+                for client in clients:
+                    data.append({
+                        "Carrier": carrier,
+                        "Statement Type": statement_type,
+                        "Date": date,
+                        "Type": statement_type,
+                        "Writing Producer": writing_producer,
+                        "Writing ID": writing_id,
+                        "Member ID": client[0],
+                        "Name": client[1],
+                        "Company": client[2],
+                        "Product": client[3],
+                        "HICN": client[4],
+                        "Override": client[5],
+                        "Effective Date": client[6],
+                        "Term Date": client[7],
+                        "Signed Date": client[8],
+                        "Period": client[9],
+                        "Cycle Year": client[10],
+                        "Retro": client[11],
+                        "Amount": client[12], 
+                    })
+
+        for i in range(1):
+            data[i]["Converted from .pdf by"] = ""
+        
+        df = pd.DataFrame(data)
+        return df, output_name
    
-            
+    def martins_point(self):
+        data = []
+        carrier = "Martin's Point"
+        text = self.extract_text(password="mphc4apps")
+        
+        agent_date_pay_to_pattern = r'agent: (.*?) invoice date: ([0-9\/]+)\npay to: (.*?)\n'
+        agent_date_pay_to = re.search(agent_date_pay_to_pattern,text,re.MULTILINE|re.IGNORECASE|re.DOTALL)
+        
+        clients_tables_pattern = r'^([a-z ]+)\nmember(.*?)total'
+        clients_tables = re.findall(clients_tables_pattern,text,re.MULTILINE|re.DOTALL|re.IGNORECASE)
+        
+        clients_pattern = r'^([a-z -]+) (\d+) (\w+) ([a-z -]+)?([0-9\/]+) ([0-9\/]+ )?([0-9\.\$-]+)'
+        
+        agent,date,pay_to = agent_date_pay_to.groups()
+        
+        for tables in clients_tables:
+            transaction_type = tables[0]
+            clients = re.findall(clients_pattern,tables[1],re.MULTILINE|re.DOTALL|re.IGNORECASE)
+            for client in clients:
+                data.append({
+                   "Carrier": carrier,
+                   "Agent": agent,
+                   "Pay To": pay_to,
+                   "Invoice Date": date,
+                   "Transaction Type": transaction_type,
+                   "Member Name": client[0],
+                   "Member ID": client[1],
+                   "Status": client[2],
+                   "Selling Agent": client[3],
+                   "Effective Date": client[4],
+                   "Term Date": client[5],
+                   "Amount": client[6] 
+                })
+        for i in range(1):
+            data[i]["Converted from .pdf by"] = ""
+        
+        df = pd.DataFrame(data)
+        return df, self.pdf_output_name
+    
 
     def save_to_excel(self, df, output_name):
         """Save DataFrame to an Excel file and return the file path."""
