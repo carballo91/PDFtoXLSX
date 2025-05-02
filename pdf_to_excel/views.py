@@ -36,7 +36,7 @@ def upload_pdf(request):
                 
                 # start_time = time.time()
                 # Extract text from the PDF and determine processing method
-                passwords = [None,"2646","WG500","LBL22728","7964"]
+                passwords = [None,"2646","WG500","LBL22728","7964","mphc4apps"]
                 pw = pdf_name.rstrip("Z")
                 passwords.append(pw)
                 for password in passwords:
@@ -49,7 +49,7 @@ def upload_pdf(request):
                     except PDFPasswordIncorrect:
                         continue
                 decoded = pdf_editor.processText(first_page_text)
-                # print(first_page_text)
+                print(first_page_text)
                 # print(first_page_text)
                 
                 df = None
@@ -70,7 +70,7 @@ def upload_pdf(request):
                 elif "Agent # Writing Agent Name Policy # Name St Plan Code Mo/Yr Paid Date Dur. Premium Rate Comm Advance" in first_page_text:
                     df, output_name = pdf_editor.sentinel()
                 elif "Member ID Name Company Product HICN Override Date Date Period Year Retro Amount" in first_page_text:
-                    df, output_name = pdf_editor.bcbs_la_commisions()
+                    df, output_name = pdf_editor.bcbs_la_commisions("BCBS LA")
                 elif "Current ContractSubscriber Name Company MOP OED Due Date Product Name Premium Elapsed Comm. % Commission" in first_page_text:
                     df, output_name = pdf_editor.bcbs_la_compensation()
                 elif "Member ID Writing ID Name Product State Date Term Date Term Code Period Type Retro Amount" in first_page_text:
@@ -128,7 +128,39 @@ def upload_pdf(request):
                 elif "NIPPON LIFE BENEFITS" in first_page_text:
                     df,output_name = pdf_editor.nippon_life()
                 elif "POLICY INSURED'S NAME PLAN CODE PAID TO PREMIUM PERCENT EARNED AMT TO PAY FICA APPL TO ADV BALANCE" in first_page_text:
-                    df,output_name = pdf_editor.cigna_ms_lisa()
+                    column_ranges = [
+                        (24,65),
+                        (67,150),
+                        (153,192),
+                        (193,228),
+                        (246,273),
+                        (275,315),
+                        (320,355),
+                        (360,400),
+                        (401,430),
+                        (443,473),
+                    ]
+                    df,output_name = pdf_editor.cigna_ms_lisa(column_ranges)
+                elif "POLICY INSURED'S NAME PLAN CODE PAID TO PREMIUM PERCENT EARNED AMT TO PAY FICA APPL" in first_page_text:
+                    column_ranges = [
+                        (24,76),
+                        (76,190),
+                        (196,246),
+                        (246,296),
+                        (324,354),
+                        (359,402),
+                        (425,455),
+                        (482,515),
+                        (520,556),
+                        (556,580),
+                    ]
+                    df,output_name = pdf_editor.cigna_ms_lisa(column_ranges)
+                elif "Producer Producer Name E&O End Date Active Producer BC Commission HMO Commission Life Commission Total Commission" in first_page_text:
+                    df,output_name = pdf_editor.bcbs_lousiana("BCBS LA")  
+                elif "Producer Producer Name E&O End Date Active Producer PWMS Commission PWAR Commission Total Commission" in first_page_text:
+                    df,output_name = pdf_editor.bcbs_lousiana("Primewell MAPD")
+                elif "Member Name Member ID Status Selling Agent Effective Date Term Date Amount" in first_page_text:
+                    df,output_name = pdf_editor.martins_point()
                 # elif "Kaiser Foundation Health Plan of Georgia" in first_page_text:
                 #     df,output_name = pdf_editor.kaiser_georgia()
                 # Add other conditions as needed...
