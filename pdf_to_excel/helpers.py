@@ -2616,11 +2616,15 @@ class PDFEditor:
         data = []
         text = self.extract_text()
 
+        tables = self.extract_tables_from_pdf()
+
+
+
         date = re.search(r"Activity Ending Date: (\d+\/\d+\/\d+)",text,re.DOTALL)
         date = date.group(1)
 
         statement_type_pattern = r'\w+, \w+, \d+ ([a-z ]+)'
-        statement_type = re.search(statement_type_pattern,text,re.DOTALL|re.MULTILINE|re.IGNORECASE)
+        statement_type1 = re.search(statement_type_pattern,text,re.DOTALL|re.MULTILINE|re.IGNORECASE)
         
         producers_pattern = r'Writing Producer (\d+)\s(\w+\s\w+)\n(.*?)Total for Writing Producer'
         producers = re.findall(producers_pattern,text,re.MULTILINE|re.DOTALL)
@@ -2629,12 +2633,36 @@ class PDFEditor:
         
         clients_pattern = r'^(\d+)\s([a-zA-Z]+(?:\s[a-zA-Z-]+){0,3})\s(\w+)\s(\d+(?:\s[a-zA-Z]+){0,4})\s(\w+)\s(\w+\s)?(\d+\/\d+\/\d+)\s(\d+\/\d+\/\d+\s)?(\d+\/\d+\/\d+)\s(\d+\/\d+)\s(\d+\s)?(\w+)\s(\(?\$ (?:\d+,)?\d+\.\d+\)?)$'
         
+        for table in tables:
+            for t in table:
+                if len(t) == 9 and t[-1] and t[-1].startswith('$'):
+                    data.append({
+                        "Carrier": carrier,
+                        "Statement Type": "Manual Adjustment",
+                        "Date": date,
+                        "Type": t[6],
+                        "Writing Producer": t[1],
+                        "Writing ID": t[0],
+                        "Member ID": t[2],
+                        "Name": t[3],
+                        "Company": "",
+                        "Product": "",
+                        "HICN": t[4],
+                        "Override": "",
+                        "Effective Date": "",
+                        "Term Date": "",
+                        "Signed Date": "",
+                        "Period": t[5],
+                        "Cycle Year": "",
+                        "Retro": "",
+                        "Description":t[7],
+                        "Amount": t[8], 
+                    })
         
-        count = 0
         for producer in producers:
             statements = re.findall(statements_pattern,producer[2],re.MULTILINE|re.IGNORECASE|re.DOTALL)
-            writing_producer = producer[0]
-            writing_id = producer[1]
+            writing_producer = producer[1]
+            writing_id = producer[0]
 
             for statement in statements:
                 statement_type = statement[0]
@@ -2660,6 +2688,7 @@ class PDFEditor:
                         "Period": client[9],
                         "Cycle Year": client[10],
                         "Retro": client[11],
+                        "Description":"",
                         "Amount": client[12], 
                     })
 
