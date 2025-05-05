@@ -49,7 +49,7 @@ def upload_pdf(request):
                     except PDFPasswordIncorrect:
                         continue
                 decoded = pdf_editor.processText(first_page_text)
-                print(first_page_text)
+                # print(first_page_text)
                 # print(first_page_text)
                 
                 df = None
