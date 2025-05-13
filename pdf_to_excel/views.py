@@ -167,11 +167,11 @@ def upload_pdf(request):
                     df,output_name = pdf_editor.delta_dental_northeast()
                 elif "WRITING SOURCE TRAN EFFECT PAID PAID NAME POLICY PLAN CURR PREMIUM FEE % COMMISSION" in first_page_text:
                     column_ranges = [
-                        (0,31),
+                        (0,54),
                         (54,74),
                         (74,105),
                         (105,137),
-                        (138,159),
+                        (137,159),
                         (160,178),
                         (178,221),
                         (221,265),
