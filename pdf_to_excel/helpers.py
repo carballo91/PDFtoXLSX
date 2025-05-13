@@ -2888,19 +2888,26 @@ class PDFEditor:
     def general_agent_center(self,column_ranges):
         data = []
         text = self.extract_text(0,1)
+        
+        plan_types = {
+            "VBA-SP" : "Value Benefits of America",
+            "VBA-30W" : "Value Benefits of America",
+            "NEA-AC" : "NEA-ACCIDENT"
+        }
 
         filtered_text = self.clean_lines_main(column_ranges=column_ranges)
         
         agency_information_pattern = r'([a-z ]+) commission statement ([a-z ]+)\n.*?producer ([0-9a-z-]+).*?period beginning: (\d+\/\d+\/\d+).*?period ending: (\d+\/\d+\/\d+)'
-        clients_pattern = r'^(\d+), (\w+), (\d+), (\d+), (\d+), (\d+), ([a-z, ]+), (\d+), ([a-z0-9-]+), (\d+). ([0-9\.]+), (\d+), ([0-9a-z\.]+),(.*?),(.*?), ([0-9a-z\.]+)$'
+        clients_pattern = r'^([a-z0-9 ]+), (\w+), (\d+), (\d+), (\d+), (\d+), ([a-z, ]+), (\d+), ([a-z0-9-]+), (\d+). ([0-9\.-]+), (\d+), ([0-9a-z\.]+),(.*?),(.*?), ([0-9a-z\.]+)$'
         
         agency_information = re.search(agency_information_pattern,text,re.IGNORECASE|re.DOTALL).groups()
         
         clients = re.findall(clients_pattern,filtered_text,re.DOTALL|re.IGNORECASE|re.MULTILINE)
-
+        
         for client in clients:
             data.append({
-                "Carrier" : agency_information[0],
+                "FMO" : agency_information[0],
+                "Carrier" : plan_types.get(client[8],""),
                 "Agency" : agency_information[1],
                 "Producer ID" : agency_information[2],
                 "Period Begginning" : agency_information[3],
@@ -2946,8 +2953,8 @@ class PDFEditor:
         for client in clients:
             data.append({
                 "Carrier" : carrier,
-                "Agency Name" : agency[0],
-                "Agency ID" : agency[1],
+                "Agency Name" : agency[1],
+                "Agency ID" : agency[0],
                 "Subscriber Name" : client[0],
                 "Alternate ID" : client[1],
                 "Contract Type" : client[2],
