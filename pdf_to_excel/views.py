@@ -161,6 +161,51 @@ def upload_pdf(request):
                     df,output_name = pdf_editor.bcbs_lousiana("Primewell MAPD")
                 elif "Member Name Member ID Status Selling Agent Effective Date Term Date Amount" in first_page_text:
                     df,output_name = pdf_editor.martins_point()
+                elif "www.careington.com" in first_page_text:
+                    df,output_name = pdf_editor.carington()
+                elif "Northeast Delta Dental" in first_page_text:
+                    df,output_name = pdf_editor.delta_dental_northeast()
+                elif "WRITING SOURCE TRAN EFFECT PAID PAID NAME POLICY PLAN CURR PREMIUM FEE % COMMISSION" in first_page_text:
+                    column_ranges = [
+                        (0,31),
+                        (54,74),
+                        (74,105),
+                        (105,137),
+                        (138,159),
+                        (160,178),
+                        (178,221),
+                        (221,265),
+                        (265,300),
+                        (300,315),
+                        (320,355),
+                        (373,390),
+                        (408,443),
+                        (450,496),
+                        (496,532),
+                        (546,581),
+                    ]
+                    df,output_name = pdf_editor.general_agent_center(column_ranges)
+                elif "SUBSCRIBER NAME ALTERNATE ID CONTRACT TYPE EFF DATE C DUE DATE PREMIUM PERCENT AMOUNT REA AGENT" in first_page_text:
+                    column_ranges = [
+                        (15,41),
+                        (47,64),
+                        (96,185),
+                    ]
+        
+                    column_ranges_two = [
+                        (15,97),
+                        (97,151),
+                        (155,190),
+                        (205,237),
+                        (238,246),
+                        (246,277),
+                        (284,317),
+                        (320,355),
+                        (370,394),
+                        (395,406),
+                        (407,433),
+                    ]
+                    df,output_name = pdf_editor.bcbs_sc(column_ranges,column_ranges_two)
                 # elif "Kaiser Foundation Health Plan of Georgia" in first_page_text:
                 #     df,output_name = pdf_editor.kaiser_georgia()
                 # Add other conditions as needed...
