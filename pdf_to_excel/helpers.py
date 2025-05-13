@@ -2737,6 +2737,236 @@ class PDFEditor:
         df = pd.DataFrame(data)
         return df, self.pdf_output_name
     
+    def carington(self):
+        data = []
+        carrier = "Careington"
+        text = self.extract_text()
+
+        
+        agency_agency_number_pattern = r'([a-z ,\.]+) --- (\w+)'
+        agency,agency_number = re.search(agency_agency_number_pattern,text,re.IGNORECASE).groups()
+        
+        period_ending_pattern = r'eom date: ([0-9\/]+)'
+        period_ending = re.search(period_ending_pattern,text,re.IGNORECASE).group(1)
+        
+        direct_deposit_pattern = r'ref# ([0-9 ]+)'
+        direct_deposit = re.search(direct_deposit_pattern,text,re.IGNORECASE).group(1)
+        
+        enrollments_pattern = r'group : (\w+) ([a-z &]+) agent type : (\w+)(.*?)company'
+        enrollments = re.findall(enrollments_pattern,text,re.DOTALL|re.IGNORECASE|re.MULTILINE)
+        enrollment_clients_pattern = r'([a-z, ]+) ([0-9a-z,]+) efft : (\d+\/\d+) \w+ pmtdt: (\d+\/\d+\/\d+) cvrg: (\w+) (\w+) prem: ?(\$[0-9\.]+) ([0-9\.]+%) (\$[0-9-\.]+)'
+        
+        
+        for enrollment in enrollments:
+            group_number = enrollment[0]
+            group_name = enrollment[1]
+            agent_type = enrollment[2]
+            
+            lines = enrollment[3].splitlines()
+
+            # Group them
+            groups = []
+            current_group = []
+
+            for line in lines:
+                if "Enrollment Renewals" in line:
+                    # Start new group
+                    if current_group:
+                        groups.append(current_group)
+                    current_group = [line]
+                else:
+                    current_group.append(line)
+
+            # Add last group
+            if current_group:
+                groups.append(current_group)
+            
+            for group in groups:
+                if len(group) > 1:
+                    category = group[0]
+                    group_to_str = "\n".join(group)
+                    clients = re.findall(enrollment_clients_pattern,group_to_str,re.IGNORECASE|re.DOTALL|re.MULTILINE)
+                    for client in clients:
+                        client_id = client[1][-6:]
+                        data.append({
+                            "Carrier" : carrier,
+                            "Period Ending" : period_ending,
+                            "Direct Deposit": direct_deposit,
+                            "Agency" : agency,
+                            "Agency Number" : agency_number,
+                            "Group Number" : group_number,
+                            "Group Name" : group_name,
+                            "Agent Type" : agent_type,
+                            "Category" : category,
+                            "Client Name" : client[0],
+                            "Client ID" : client_id,
+                            "Effective Date" : client[2],
+                            "Pmt Dat" : client[3],
+                            "Cvrg" : client[4],
+                            "Mode" : client[5],
+                            "Prem" : client[6],
+                            "Rate" : client[7],
+                            "Commission" : client[8],
+                        })
+
+        
+        not_paid_pattern = r'group : (\w+) ([a-z &]+) agent type : (\w+)\n(not paid this period)(.*)'
+        not_paid = re.findall(not_paid_pattern,text,re.DOTALL|re.IGNORECASE|re.MULTILINE)
+        not_paid_clients_pattern = r'([a-z, ]+) ([0-9a-z,]+) efft : (\d+\/\d+) \w+ cvrg: (\w+) (\w+) prem: (\$[0-9\.]+)'
+        
+        for n_paid in not_paid:
+            group_number = n_paid[0]
+            group_name = n_paid[1]
+            agent_type = n_paid[2]
+            category = n_paid[3]
+
+            not_paid_clients = re.findall(not_paid_clients_pattern,n_paid[4],re.DOTALL|re.IGNORECASE|re.MULTILINE)
+            for n_p_client in not_paid_clients:
+                client_id = n_p_client[1][-6:]
+                data.append({
+                    "Carrier" : carrier,
+                    "Period Ending" : period_ending,
+                    "Direct Deposit": direct_deposit,
+                    "Agency" : agency,
+                    "Agency Number" : agency_number,
+                    "Group Number" : group_number,
+                    "Group Name" : group_name,
+                    "Agent Type" : agent_type,
+                    "Category" : category,
+                    "Client Name" : n_p_client[0],
+                    "Client ID" : client_id,
+                    "Effective Date" : n_p_client[2],
+                    "Pmt Dat" : "",
+                    "Cvrg" : n_p_client[3],
+                    "Mode" : n_p_client[4],
+                    "Prem" : n_p_client[5],
+                    "Rate" : "",
+                    "Commission" : "",
+                })
+        
+        for i in range(1):
+            data[i]["Converted from .pdf by"] = ""
+        
+        df = pd.DataFrame(data)
+        return df, self.pdf_output_name
+    
+    def delta_dental_northeast(self):
+        carrier = "Delta Dental Northeast"
+        data = []
+        text = self.extract_text()
+        
+        tables_pattern = r'check number(.*?)\n\$'
+        headers_pattern = r'([a-z0-9\.]+) ([a-z]+ [a-z]+(?: [a-z]+)?) ([a-z]+ [a-z]+(?: [a-z]+)?) (\d+) ([0-9\/]+) (\w+)'
+        clients_pattern = r'(\d+) ([0-9a-z ]+) (\d+\/\d+\/\d+) (\$[0-9\.-]+) (\$[0-9\.-]+)'
+        
+        tables = re.findall(tables_pattern,text,re.IGNORECASE|re.DOTALL)
+        
+        for table in tables:
+            headers = re.search(headers_pattern,table,re.IGNORECASE).groups()
+            clients = re.findall(clients_pattern,table,re.IGNORECASE)
+            for client in clients:
+                data.append({
+                    "Carrier" : carrier,
+                    "Vendor ID" : headers[0],
+                    "Vendor Name" : headers[1],
+                    "Check Name" : headers[2],
+                    "Payment Number" : headers[3],
+                    "Check Date" : headers[4],
+                    "Check Number" : headers[5],
+                    "Invoice #" : client[0],
+                    "Description" : client[1],
+                    "Date" : client[2],
+                    "Orig Amnt" : client[3],
+                    "Amount Paid" : client[4],
+                })
+        for i in range(1):
+            data[i]["Converted from .pdf by"] = ""
+        
+        df = pd.DataFrame(data)
+        return df, self.pdf_output_name
+    
+    def general_agent_center(self,column_ranges):
+        data = []
+        text = self.extract_text(0,1)
+
+        filtered_text = self.clean_lines_main(column_ranges=column_ranges)
+        
+        agency_information_pattern = r'([a-z ]+) commission statement ([a-z ]+)\n.*?producer ([0-9a-z-]+).*?period beginning: (\d+\/\d+\/\d+).*?period ending: (\d+\/\d+\/\d+)'
+        clients_pattern = r'^(\d+), (\w+), (\d+), (\d+), (\d+), (\d+), ([a-z, ]+), (\d+), ([a-z0-9-]+), (\d+). ([0-9\.]+), (\d+), ([0-9a-z\.]+),(.*?),(.*?), ([0-9a-z\.]+)$'
+        
+        agency_information = re.search(agency_information_pattern,text,re.IGNORECASE|re.DOTALL).groups()
+        
+        clients = re.findall(clients_pattern,filtered_text,re.DOTALL|re.IGNORECASE|re.MULTILINE)
+
+        for client in clients:
+            data.append({
+                "Carrier" : agency_information[0],
+                "Agency" : agency_information[1],
+                "Producer ID" : agency_information[2],
+                "Period Begginning" : agency_information[3],
+                "Period Ending" : agency_information[4],
+                "Writing Agent" : client[0],
+                "Source Code" : client[1],
+                "Tran Date" : client[2],
+                "Effect Date" : client[3],
+                "Paid From" : client[4],
+                "Paid To" : client[5],
+                "Name Insured" : client[6],
+                "Policy Number" : client[7],
+                "Plan Type" : client[8],
+                "Curr Mode" : client[9],
+                "Premium Collected" : client[10],
+                "Fee" : client[11],
+                "$ Rate" : client[12],
+                "Commission" : client[13],
+                "Commissions Retained" : client[14],
+                "Misc" : client[15],
+            })
+        for i in range(1):
+            data[i]["Converted from .pdf by"] = ""
+        
+        df = pd.DataFrame(data)
+        return df, self.pdf_output_name
+
+    def bcbs_sc(self,column_ranges,column_ranges_two):
+        data = []
+        carrier = "BCBS SC ACA"
+  
+        filtered_agency_text = self.clean_lines_main(column_ranges)
+        agency_pattern = r'^agency, (\w+), ([a-z ]+)$'
+        
+        agency = re.search(agency_pattern,filtered_agency_text,re.IGNORECASE|re.MULTILINE).groups()
+        
+        filtered_text = self.clean_lines_main(column_ranges_two,y_tolerance=6)
+        
+        clients_pattern = r'([a-z -]+), (\w+), ([a-z ]+), ([0-9\/]+), (\w+), ([0-9\/]+), ([0-9\.,]+), (\$ [0-9\.,]+), ([0-9\.]+),(.*?), (\w+)'
+        
+        clients = re.findall(clients_pattern,filtered_text,re.IGNORECASE|re.DOTALL|re.MULTILINE)
+
+        for client in clients:
+            data.append({
+                "Carrier" : carrier,
+                "Agency Name" : agency[0],
+                "Agency ID" : agency[1],
+                "Subscriber Name" : client[0],
+                "Alternate ID" : client[1],
+                "Contract Type" : client[2],
+                "Eff Date" : client[3],
+                "TC" : client[4],
+                "Due Date" : client[5],
+                "Initial Premium" : client[6],
+                "Percap Percent" : client[7],
+                "Commission Amount" : client[8],
+                "Adj Rea" : client[9],
+                "Selling Agent" : client[10],
+            })
+
+        for i in range(1):
+            data[i]["Converted from .pdf by"] = ""
+        
+        df = pd.DataFrame(data)
+        return df, self.pdf_output_name
+        
 
     def save_to_excel(self, df, output_name):
         """Save DataFrame to an Excel file and return the file path."""
