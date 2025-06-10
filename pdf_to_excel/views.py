@@ -95,7 +95,7 @@ def upload_pdf(request):
                     df,output_name = pdf_editor.family_benefit_life()
                 elif "Broker # Referral(s) Commission Adjustment(s)" in first_page_text:
                     df,output_name = pdf_editor.river_health()
-                elif "Month Subscribers Schedule Premium Paid Commission" in first_page_text:
+                elif "Month Subscribers Schedule Premium Paid Commission" in first_page_text or "Received Date Received % Dues Paid Rate Total Commission" in first_page_text:
                     df,output_name = pdf_editor.kaiser_permanente()
                 elif "Delta Dental of Colorado" in first_page_text:
                     df,output_name = pdf_editor.delta_dental_colorado()
