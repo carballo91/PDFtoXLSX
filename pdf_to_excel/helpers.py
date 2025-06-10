@@ -41,7 +41,15 @@ class PDFEditor:
         """Check if the uploaded file is a valid PDF."""
         # print(self.pdf_file.name.lower().endswith(".pdf"))
         return self.pdf_file.name.lower().endswith(".pdf")
-
+    
+    def is_rotated(self):
+        
+        with pdfplumber.open(self.pdf_file) as pdf:
+            for i, page in enumerate(pdf.pages):
+                rotation = page.rotation  # This returns 0, 90, 180, or 270
+                if rotation > 0:
+                    return True
+        return False
     
     def extract_page_text(self, pdf, page_num):
         if 0 <= page_num < len(pdf.pages):
@@ -1414,6 +1422,8 @@ class PDFEditor:
         text = self.extract_text()
         data = []
         
+        # print(text)
+        
         agency_pattern = r'Commission Month: [a-zA-Z0-9\/ -]+\n(.*?)Total'
         agency = re.search(agency_pattern,text,re.DOTALL).group(1)
         
@@ -1485,12 +1495,14 @@ class PDFEditor:
             # Add the last collected block
             if current_block:
                 blocks.append("\n".join(current_block))
-        kpif_member_pattern = r'([a-zA-Z, ]+) (\d+\/\d+\/\d+ )?(\$\d?,?\d+.\d+ )?(\d?,?\d+.\d+ % )?(\$\d?,?\d+.\d+ )?(\d+\/\d+\/\d+) (\$\d?,?\d+.\d+)'
+        kpif_member_pattern = r'([a-zA-Z, ]+) (\d+\/\d+\/\d+ )?(\$\d?,?\d+.\d+ )?(\d?,?\d+.\d+ % )?(\$\d?,?\d+.\d+ )(\d+\/\d+\/\d+ )?(\$\d?,?\d+.\d+)'
         for table in blocks:
-            # print(table)
             agent, agent_id = re.search(agent_pattern,table,re.DOTALL|re.MULTILINE).groups()
             subscribers = re.findall(kpif_member_pattern,table,re.DOTALL|re.MULTILINE)
+   
             for i in range(len(subscribers)):
+                if subscribers[i][0] == "TARVER,ANDRIA R" and subscribers[i][1] == "":
+                    continue
                 data.append({
                     "Carrier": "Kaiser Permanente Colorado",
                     "Agency": agency,
@@ -1625,15 +1637,24 @@ class PDFEditor:
         carrier = "Delta Dental of Virginia"
         output_name = self.pdf_output_name
         data = []
-        text = self.extract_text()
-
-        agency_pattern = r'Agency: (.*?) Tax'
-        agency = re.search(agency_pattern,text).group(1)
         
-        agents_pattern = r'(\d+) (\w+) ([a-zA-Z0-9 ]+) (\$ \d*,?\d+.\d+) (\$ \d*,?\d+ ?\d*.\d+) ([a-zA-Z0-9-]+) ([a-zA-Z0-9 ]+)'
+        is_rotated = self.is_rotated()
+        if is_rotated:
+            rotated_text = self.rotate_pdf()
+            text = self.extract_text_delta(text=rotated_text)
+        else:
+            text = self.extract_text()
         
-        tables_pattern = r'PolicyHolder (?:.*?)\n(.*)'
-        tables = re.findall(tables_pattern,text,re.MULTILINE|re.DOTALL)
+        try:
+            agency_pattern = r'Agency: (.*?) Tax'
+            agency = re.search(agency_pattern,text).group(1)
+            
+            agents_pattern = r'(\d+) (\w+) ([a-zA-Z0-9 ]+) (\$ \d*,?\d+.\d+) (\$ \d*,?\d+ ?\d*.\d+) ([a-zA-Z0-9-]+) ([a-zA-Z0-9 ]+)'
+            
+            tables_pattern = r'PolicyHolder (?:.*?)\n(.*)'
+            tables = re.findall(tables_pattern,text,re.MULTILINE|re.DOTALL)
+        except AttributeError:
+            return (None,None)
         for table in tables:
             rows = re.findall(agents_pattern,table,re.MULTILINE|re.DOTALL)
             for columns in rows:
@@ -1659,7 +1680,9 @@ class PDFEditor:
         data = []
         text = self.extract_text_from_range(0)
         
-        agency_pattern = r'\d+\/\d+\/\d+$\n[a-zA-Z0-9 ]+\n([a-zA-Z0-9 ]+)'
+        print(text)
+        
+        agency_pattern = r'\d+\/\d+\/\d+$\n[a-zA-Z0-9 ]+\n([a-zA-Z0-9 &]+)'
         agency = re.search(agency_pattern,text,re.MULTILINE|re.DOTALL).group(1)
         
         statements_pattern = r'(.*?)End of Statement'
