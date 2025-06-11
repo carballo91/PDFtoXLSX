@@ -1443,13 +1443,13 @@ class PDFEditor:
         kpif_table = re.findall(kpif_pattern,text,re.DOTALL|re.MULTILINE)
         
         agent_pattern = r'([a-zA-Z0-9, ]+) \((\w+)\)'
-        subscribers_list_pattern = r'(\d+) ([a-zA-Z0-9 &-]+) ([a-zA-Z]{2,4}) ([0-9]{,4}) (\$\d+.\d+) (\$\d?,?\d+.\d+) (\d+%) (\$\d?,?\d+.\d+)\n([a-zA-Z ]+)?'
+        subscribers_list_pattern = r'(\d+) ([a-zA-Z0-9 &-]+) ([a-zA-Z]{2,4}) ([0-9]{,4}) (\$\d+.\d+) ([0-9$.,]+) (\d+%) (\$\d?,?\d+.\d+)\n([a-zA-Z ]+)?'
         for subscribers in subscribers_table:
-            # print(subscriber)
+            print(subscribers)
             agent, agent_id = re.search(agent_pattern,subscribers,re.DOTALL|re.MULTILINE).groups()
-            print(agent)
-            print(agent_id)
+
             subscribers_list = re.findall(subscribers_list_pattern,subscribers,re.DOTALL|re.MULTILINE)
+
             for subscriber in subscribers_list:
                 data.append({
                     "Carrier": "Kaiser Permanente Colorado",
@@ -1495,14 +1495,23 @@ class PDFEditor:
             # Add the last collected block
             if current_block:
                 blocks.append("\n".join(current_block))
-        kpif_member_pattern = r'([a-zA-Z, ]+) (\d+\/\d+\/\d+ )?(\$\d?,?\d+.\d+ )?(\d?,?\d+.\d+ % )?(\$\d?,?\d+.\d+ )(\d+\/\d+\/\d+ )?(\$\d?,?\d+.\d+)'
+        kpif_member_pattern = r'([a-zA-Z, ]+) (\d+\/\d+\/\d+ )?(\$\d?,?\d+.\d+ )?(\d?,?\d+.\d+ % )?(\$\d?,?\d+.\d+ )?(\d+\/\d+\/\d+ )?(\$\d?,?\d+.\d+)'
         for table in blocks:
+
             agent, agent_id = re.search(agent_pattern,table,re.DOTALL|re.MULTILINE).groups()
-            subscribers = re.findall(kpif_member_pattern,table,re.DOTALL|re.MULTILINE)
-   
-            for i in range(len(subscribers)):
-                if subscribers[i][0] == "TARVER,ANDRIA R" and subscribers[i][1] == "":
+            n_st = table.split("\n")
+            formatted = ""
+
+            for i in n_st:
+                if len(i) > 5 and "$" not in i:
+                    i = i + " $0.00 $0.00"
+                    formatted = formatted + i + " "
                     continue
+                formatted = formatted + i + " "
+
+            subscribers = re.findall(kpif_member_pattern,formatted,re.DOTALL|re.MULTILINE)
+            for i in range(len(subscribers)):
+
                 data.append({
                     "Carrier": "Kaiser Permanente Colorado",
                     "Agency": agency,
@@ -1680,8 +1689,6 @@ class PDFEditor:
         data = []
         text = self.extract_text_from_range(0)
         
-        print(text)
-        
         agency_pattern = r'\d+\/\d+\/\d+$\n[a-zA-Z0-9 ]+\n([a-zA-Z0-9 &]+)'
         agency = re.search(agency_pattern,text,re.MULTILINE|re.DOTALL).group(1)
         
@@ -1689,36 +1696,57 @@ class PDFEditor:
         statements = re.findall(statements_pattern,text,re.MULTILINE|re.DOTALL)
     
         
-        types_pattern = r'([a-zA-Z0-9 ]+)\nPolicy(.*?)Total'
+        types_pattern = r'([a-zA-Z0-9 ]+)\nPolicy(.*?)Renewal'
         clients_pattern = r'(?:^(\w+)\n(?:([A-Z]+, [A-Z]+) ([A-Z0-9 ]+)\n|([A-Z]* ?[A-Z]+,? ?[A-Z]+ ?[a-zA-Z]{0,1}) ((?:AMBR)* [A-Z0-9 ]+)\n|([A-Z]+, [A-Z]+ ?[a-zA-Z]*)\n(.*?)\n)\n?([A-Z0-9-, ]+) (\d+\/\d+\/\d+)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n|^(?:(\w+) ([a-zA-Z]+, [a-zA-Z]+ ?[A-Z]?)|(\w+) ([a-zA-Z,]+ ?-? [a-zA-Z]+ ?[a-zA-Z]{0,1}) ([a-zA-Z0-9 ]+))\n([a-zA-Z0-9 ]+)?\n?^([a-zA-Z0-9, -]+) (\d+\/\d+\/\d+)\n(\d+\/\d+\/\d+)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n)'
+        clients_pattern_1 = r'^(\d+)\n(.*?)\n(.*?)\n(.*?)\n(\d+\/\d+\/\d+)\n(\d+\/\d+\/\d+)'
         for statement in statements:
             types = re.findall(types_pattern,statement,re.MULTILINE|re.DOTALL)
             for tpe in types:
                 
-                print(tpe[1])
                 clients = re.findall(clients_pattern,tpe[1],re.DOTALL|re.MULTILINE|re.IGNORECASE)
-                print(len(clients))
-                adjusted = []
-                for client in clients:
-                    formatted_client = [c for c in client if c != ""]
-                    adjusted.append(formatted_client)
-                    data.append({
-                        "FMO": "Peek Performance",
-                        "Agency": agency,
-                        "Type": tpe[0],
-                        "Policy No.": formatted_client[0],
-                        "Policyholder": formatted_client[1],
-                        "Product": formatted_client[2],
-                        "Writing Agent": formatted_client[3],
-                        "Effective": formatted_client[4],
-                        "Paid-To": formatted_client[5],
-                        "Comm. Premium": formatted_client[6],
-                        "Rate": formatted_client[7],
-                        "Earned Credit": formatted_client[8],
-                        "Earned Commission": formatted_client[9],
-                        "Escrow Adjustment": formatted_client[10],
-                    })
-                # print(len(adjusted))
+                diff_pdf_clients = re.findall(clients_pattern_1,tpe[1],re.DOTALL|re.MULTILINE|re.IGNORECASE) 
+                
+                if clients:
+
+                    adjusted = []
+                    for client in clients:
+                        formatted_client = [c for c in client if c != ""]
+                        adjusted.append(formatted_client)
+                        data.append({
+                            "FMO": "Peek Performance",
+                            "Agency": agency,
+                            "Type": tpe[0],
+                            "Policy No.": formatted_client[0],
+                            "Policyholder": formatted_client[1],
+                            "Product": formatted_client[2],
+                            "Writing Agent": formatted_client[3],
+                            "Effective": formatted_client[4],
+                            "Paid-To": formatted_client[5],
+                            "Comm. Premium": formatted_client[6],
+                            "Rate": formatted_client[7],
+                            "Earned Credit": formatted_client[8],
+                            "Earned Commission": formatted_client[9],
+                            "Escrow Adjustment": formatted_client[10],
+                        })
+                else:
+                    for client in diff_pdf_clients:
+                        data.append({
+                            "FMO": "Peek Performance",
+                            "Agency": agency,
+                            "Type": tpe[0],
+                            "Policy No.": client[0],
+                            "Policyholder": client[1],
+                            "Product": client[2],
+                            "Writing Agent": client[3],
+                            "Effective": client[4],
+                            "Paid-To": client[5],
+                            "Comm. Premium": "",
+                            "Rate": "",
+                            "Earned Credit": "",
+                            "Earned Commission": "",
+                            "Escrow Adjustment": "",
+                        })
+                    
         if len(data) >= 1:
             for i in range(1):
                 data[i]["Converted from .pdf by"] = ""
@@ -2996,6 +3024,55 @@ class PDFEditor:
         
         df = pd.DataFrame(data)
         return df, self.pdf_output_name
+    
+    def cigna_global(self):
+        data = []
+        carrier = "Cigna Global"
+        text = self.extract_text(start=0,pages=1)
+        # print(text)
+        tables = self.extract_tables_from_pdf()
+        
+        broker_info_pattern = r'commissionnumber: (\d+)\naccountname: ([a-z, \.]+)\nbrokerreferencenumber: ([a-z0-9 ]+)\nstatementdate: ([a-z0-9 ]+)'
+        broker_info = re.search(broker_info_pattern,text,re.IGNORECASE)
+        commission_number,account_name,broker_reference_number,statement_date = broker_info.groups()
+        
+        policy_holders_pattern = r'(\d+) ([a-z ]+) (\d+) ([a-z0-9]+) ([a-z0-9]+) (\w+\.\w+) (\d+) (\w+\.\w+)'
+
+        n_text = ""
+
+        for lines in tables:
+            for line in lines:
+                if len(line) == 8 and line[0].isdecimal():
+                    for i in line:
+                        print(i)
+                        i = i.replace("\n"," ")
+                        n_text = n_text + i + " "
+                    n_text += "\n"
+        
+        policy_holders = re.findall(policy_holders_pattern,n_text,re.IGNORECASE|re.MULTILINE|re.DOTALL)
+        for policy_holder in policy_holders:
+            data.append({
+                "Carrier": carrier,
+                "Commission Number": commission_number,
+                "Account Name": account_name,
+                "Broker Reference Number": broker_reference_number,
+                "Statement Date": statement_date,
+                "Policy Number": policy_holder[0],
+                "Policy Holder": policy_holder[1],
+                "Transaction No": policy_holder[2],
+                "Premium Due Date": policy_holder[3][0:2] + " " + policy_holder[3][2:5] + " " + policy_holder[3][5:],
+                "Premium Paid Date": policy_holder[4][0:2] + " " + policy_holder[4][2:5] + " " + policy_holder[4][5:],
+                "Premium Paid (Inc Tax)": policy_holder[5][0:3] + " " + policy_holder[5][3:],
+                "Commission Percent": policy_holder[6],
+                "Commission Amount": policy_holder[7][0:2] + " " + policy_holder[7][2:5] + " " + policy_holder[7][5:]
+            })
+            
+        for i in range(1):
+            data[i]["Converted from .pdf by"] = ""
+        
+        df = pd.DataFrame(data)
+        return df, self.pdf_output_name
+                    
         
 
     def save_to_excel(self, df, output_name):
