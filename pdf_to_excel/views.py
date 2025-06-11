@@ -206,6 +206,8 @@ def upload_pdf(request):
                         (407,433),
                     ]
                     df,output_name = pdf_editor.bcbs_sc(column_ranges,column_ranges_two)
+                elif "Policy Policyholder Transaction Premium Premium PremiumPaid Commission Commission" in first_page_text:
+                    df,output_name = pdf_editor.cigna_global()
                 # elif "Kaiser Foundation Health Plan of Georgia" in first_page_text:
                 #     df,output_name = pdf_editor.kaiser_georgia()
                 # Add other conditions as needed...
