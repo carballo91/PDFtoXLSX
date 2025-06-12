@@ -3028,44 +3028,56 @@ class PDFEditor:
     def cigna_global(self):
         data = []
         carrier = "Cigna Global"
-        text = self.extract_text(start=0,pages=1)
-        # print(text)
-        tables = self.extract_tables_from_pdf()
+        text = self.extract_text_from_range(0)
+
+        print(text)
         
-        broker_info_pattern = r'commissionnumber: (\d+)\naccountname: ([a-z, \.]+)\nbrokerreferencenumber: ([a-z0-9 ]+)\nstatementdate: ([a-z0-9 ]+)'
+        
+        broker_info_pattern = r'commission number:\n(\d+)\naccount name:\n([a-z ,0-9.]+)\nbroker reference number:\n([a-z0-9 ]+)\nstatement date:\n([a-z0-9 ]+)'
         broker_info = re.search(broker_info_pattern,text,re.IGNORECASE)
         commission_number,account_name,broker_reference_number,statement_date = broker_info.groups()
         
-        policy_holders_pattern = r'(\d+) ([a-z ]+) (\d+) ([a-z0-9]+) ([a-z0-9]+) (\w+\.\w+) (\d+) (\w+\.\w+)'
-
-        n_text = ""
-
-        for lines in tables:
-            for line in lines:
-                if len(line) == 8 and line[0].isdecimal():
-                    for i in line:
-                        print(i)
-                        i = i.replace("\n"," ")
-                        n_text = n_text + i + " "
-                    n_text += "\n"
+        policy_holders_pattern = r'(\d+)\n([a-z ]+\n[a-z ]+\n)(\d+)\n(\d+ \D+ \d+) (\d+ \D+ \d+)\n([a-z0-9. ]+)\n(\d+)\n([a-z0-9 .]+)'
+        policy_holders_pattern_1 = r'(\d+)\n([a-z ]+\n)(\d+)\n(\d+ \D+ \d+) (\d+ \D+ \d+)\n([a-z0-9. ]+)\n(\d+)\n([a-z0-9 .]+)'
+       
         
-        policy_holders = re.findall(policy_holders_pattern,n_text,re.IGNORECASE|re.MULTILINE|re.DOTALL)
-        for policy_holder in policy_holders:
-            data.append({
-                "Carrier": carrier,
-                "Commission Number": commission_number,
-                "Account Name": account_name,
-                "Broker Reference Number": broker_reference_number,
-                "Statement Date": statement_date,
-                "Policy Number": policy_holder[0],
-                "Policy Holder": policy_holder[1],
-                "Transaction No": policy_holder[2],
-                "Premium Due Date": policy_holder[3][0:2] + " " + policy_holder[3][2:5] + " " + policy_holder[3][5:],
-                "Premium Paid Date": policy_holder[4][0:2] + " " + policy_holder[4][2:5] + " " + policy_holder[4][5:],
-                "Premium Paid (Inc Tax)": policy_holder[5][0:3] + " " + policy_holder[5][3:],
-                "Commission Percent": policy_holder[6],
-                "Commission Amount": policy_holder[7][0:2] + " " + policy_holder[7][2:5] + " " + policy_holder[7][5:]
-            })
+        policy_holders = re.findall(policy_holders_pattern,text,re.IGNORECASE|re.MULTILINE|re.DOTALL)
+        policy_holders_1 = re.findall(policy_holders_pattern_1,text,re.IGNORECASE|re.MULTILINE|re.DOTALL)
+
+        if policy_holders:
+            for policy_holder in policy_holders:
+                data.append({
+                    "Carrier": carrier,
+                    "Commission Number": commission_number,
+                    "Account Name": account_name,
+                    "Broker Reference Number": broker_reference_number,
+                    "Statement Date": statement_date,
+                    "Policy Number": policy_holder[0],
+                    "Policy Holder": " ".join(policy_holder[1].split("\n")),
+                    "Transaction No": policy_holder[2],
+                    "Premium Due Date": policy_holder[3],
+                    "Premium Paid Date": policy_holder[4],
+                    "Premium Paid (Inc Tax)": policy_holder[5],
+                    "Commission Percent": policy_holder[6],
+                    "Commission Amount": policy_holder[7]
+                })
+        if policy_holders_1:
+            for policy_holder1 in policy_holders_1:
+                data.append({
+                    "Carrier": carrier,
+                    "Commission Number": commission_number,
+                    "Account Name": account_name,
+                    "Broker Reference Number": broker_reference_number,
+                    "Statement Date": statement_date,
+                    "Policy Number": policy_holder1[0],
+                    "Policy Holder": policy_holder1[1],
+                    "Transaction No": policy_holder1[2],
+                    "Premium Due Date": policy_holder1[3],
+                    "Premium Paid Date": policy_holder1[4],
+                    "Premium Paid (Inc Tax)": policy_holder1[5],
+                    "Commission Percent": policy_holder1[6],
+                    "Commission Amount": policy_holder1[7]
+                })
             
         for i in range(1):
             data[i]["Converted from .pdf by"] = ""
