@@ -3029,9 +3029,6 @@ class PDFEditor:
         data = []
         carrier = "Cigna Global"
         text = self.extract_text_from_range(0)
-
-        print(text)
-        
         
         broker_info_pattern = r'commission number:\n(\d+)\naccount name:\n([a-z ,0-9.]+)\nbroker reference number:\n([a-z0-9 ]+)\nstatement date:\n([a-z0-9 ]+)'
         broker_info = re.search(broker_info_pattern,text,re.IGNORECASE)
