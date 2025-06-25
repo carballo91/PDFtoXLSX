@@ -9,6 +9,7 @@ import zipfile
 import urllib
 import time
 from pdfminer.pdfdocument import PDFPasswordIncorrect
+from .helpers2 import PDFS
 
 def upload_pdf(request):
     if request.method == "POST":
@@ -22,6 +23,8 @@ def upload_pdf(request):
                 # print(f"PDF File is {pdf_file}")
                 # Create an instance of the PDFEditor class
                 pdf_editor = PDFEditor(pdf_file)
+                extended_pdf_editor = PDFS(pdf_file)
+                
                 
                 # Check if the uploaded file is a valid PDF
                 if not pdf_editor.is_valid_pdf():
@@ -208,6 +211,24 @@ def upload_pdf(request):
                     df,output_name = pdf_editor.bcbs_sc(column_ranges,column_ranges_two)
                 elif "Policy Policyholder Transaction Premium Premium PremiumPaid Commission Commission" in first_page_text:
                     df,output_name = pdf_editor.cigna_global()
+                elif "Customer ID Customer Name Prod Coverage First Eff Date Age at Disability Member Bill Eff Paid Thru Prem Member Comm CommComm" in first_page_text:
+                    df, output_name = extended_pdf_editor.BCBS_Nebraska()
+                elif "Kaiser Foundation Health Plan of the Northwest" in first_page_text:
+                    df,output_name = extended_pdf_editor.kaiser_permanente_northwest()
+                elif "Case Number External ID Description Coverage Lives Paid Compensation Writing" in first_page_text:
+                    column_ranges = [
+                        (32,86),
+                        (105,154),
+                        (172,246),
+                        (258,298),
+                        (341,354),
+                        (389,425),
+                        (471,502),
+                        (504,539),
+                    ]
+                    df,output_name = extended_pdf_editor.pivot_health(column_ranges)
+                elif "CERT# HOLDER EFFECT PAID PAID PREMIUM COMM SRC 1ST 1ST REN REF" in first_page_text:
+                    df,output_name = extended_pdf_editor.sons_of_norway()
                 # elif "Kaiser Foundation Health Plan of Georgia" in first_page_text:
                 #     df,output_name = pdf_editor.kaiser_georgia()
                 # Add other conditions as needed...
