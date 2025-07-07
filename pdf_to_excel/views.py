@@ -60,7 +60,7 @@ def upload_pdf(request):
   
                 if "Royal Neighbors of America" in first_page_text:
                     # Process using method for the PDF with "Run Date" and "Agents"
-                    df, output_name = pdf_editor.process_pdf_type1()
+                    df, output_name = extended_pdf_editor.royal_neighbors()
                 elif "Foresters Financial" in first_page_text:
                     # Process using another method for different PDF structures
                     df, output_name = pdf_editor.forester_financial()  # Adjust for another type of PDF
@@ -229,6 +229,8 @@ def upload_pdf(request):
                     df,output_name = extended_pdf_editor.pivot_health(column_ranges)
                 elif "CERT# HOLDER EFFECT PAID PAID PREMIUM COMM SRC 1ST 1ST REN REF" in first_page_text:
                     df,output_name = extended_pdf_editor.sons_of_norway()
+                elif "Group ID Group Name Total Premium Premium Paid Total Paid Prem Med/Den Comm Retro ?Commission" in first_page_text:
+                    df,output_name = extended_pdf_editor.providence2()
                 # elif "Kaiser Foundation Health Plan of Georgia" in first_page_text:
                 #     df,output_name = pdf_editor.kaiser_georgia()
                 # Add other conditions as needed...
