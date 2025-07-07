@@ -304,3 +304,123 @@ class PDFS(PDFEditor):
                 data[i]["Converted from .pdf by"] = ""
         df = pd.DataFrame(data)
         return df,self.pdf_output_name
+    
+    def royal_neighbors(self):
+        """Process the first type of PDF (with 'Run Date' and 'Agents')."""
+        output_name = self.pdf_output_name
+
+        # Extract text from page 4
+        text = self.extract_text()
+
+
+        # Extract 'Run Date' and 'Agents' information
+        agents = re.findall(r"(.*?)Subtotals for Agent (\w+)\s+([A-Z,.\s]+)", text,re.IGNORECASE|re.DOTALL)
+        run_date = re.findall(r"Run Date:\s(\d{,2}\/\d{,2}\/\d{4})", text)
+        clients_pattern = r'([a-z, -]+ )?([0-9]+)( \w+)? ([0-9]{2}\/[0-9]{2}\/[0-9]{4}) ([a-z]+) ([0-9]{2}\/[0-9]{2}\/[0-9]{4}) ([a-z]+) ([0-9\.]+) ([0-9\$\.\-]+) ([0-9\.]+) ([0-9\$\.\-]+) ([0-9\$\.\-]+) ([0-9\$\.\-\(\)]+)'
+        extra_cols_pattern = r'balance\n(.*?)earned'
+        extra_rows_pattern = r'([0-9\$\.]+)( [a-z ]+)?'
+            
+        if not agents:
+            return None, None  # Handle invalid case
+
+        new_data = []
+
+        for agent in agents:
+            print(agent[0])
+            clients = re.findall(clients_pattern,agent[0],re.IGNORECASE|re.DOTALL)
+
+            for client in clients:
+
+                new_data.append({
+                    "Run Date": run_date[0],
+                    "Carrier": "Royal Neighbors",
+                    "Agent Name": agent[2],
+                    "Agent ID": agent[1],
+                    "Insured's Name": client[0],
+                    "Certificate": client[1],
+                    "Prod ID": client[2],
+                    "Issue Date": client[3],
+                    "Mode": client[4],
+                    "Paid To Date": client[5],
+                    "1st Yr Rnwl": client[6],
+                    "Split%": client[7],
+                    "Prem": client[8],
+                    "Comm%": client[9],
+                    "Earned": client[10],
+                    "Applied To Advance": client[11],
+                    "Amt To Pay": client[12],
+                }) 
+        extra_cols = re.findall(extra_cols_pattern,text,re.IGNORECASE|re.DOTALL)
+
+        for cols in extra_cols:
+            rows = re.findall(extra_rows_pattern,cols,re.IGNORECASE)
+            for d, e in zip(new_data, rows):
+                d["Cert Adv Balance"] = e[0]
+                d["Comment"] = e[1]
+
+        # for d, e in zip(new_data, extra_cols):
+        #     d["Cert Adv Balance"] = e[0]
+        #     d["Comment"] = e[1]
+
+        # Add custom column
+        if len(new_data) >= 1:
+            for i in range(1):
+                new_data[i]["Converted from .pdf by"] = ""
+
+        # Convert to pandas DataFrame
+        df = pd.DataFrame(new_data)
+        
+        return df, output_name
+    
+    def providence2(self):
+        carrier = "Providence"
+        data = []
+        text = self.extract_text()
+
+        agency_info_pattern = r'([a-z ,\-]+)\n([a-z ]+)\n[a-z0-9 ]+\n[a-z0-9 ,]+\n([a-z ]+\n)?commission period: (\d+-\d+-\d+)'
+        agency_info = re.search(agency_info_pattern,text,re.IGNORECASE)
+        
+        agency = agency_info.group(1)
+        document_type = agency_info.group(2) + " " + agency_info.group(3)
+        commission_period = agency_info.group(4)
+        
+        producers_pattern = r'producer (\d+) ([a-z ,]+)\n(.*?)total producer'
+        producers = re.findall(producers_pattern,text,re.IGNORECASE|re.DOTALL)
+        
+        commission_types_pattern = r'^([a-z ]+)\n(.*?)subtotal'
+        clients_pattern = r'(\d+) ([a-z ,]+) ([0-9\$\.,-]+) ([0-9\$\.,-]+) (\d+) (\d+) (\d+\/\d+) ([a-z]+) ([0-9\.]+) ([a-z]+) (\w+ )?([0-9\$\.-]+)'
+        
+        
+        for producer in producers:
+            commission_types = re.findall(commission_types_pattern,producer[2],re.IGNORECASE|re.DOTALL|re.MULTILINE)
+            for commission in commission_types:
+
+                clients = re.findall(clients_pattern,commission[1],re.IGNORECASE|re.DOTALL)
+                for client in clients:
+                    data.append({
+                        "Carrier": carrier,
+                        "Agency": agency,
+                        "Document Type": document_type.strip("\n"),
+                        "Commission Period": commission_period,
+                        "Producer Name": producer[1],
+                        "Producer ID": producer[0],
+                        "Transaction Type": commission[0],
+                        "Group ID": client[0],
+                        "Group Name": client[1],
+                        "Total Premium": client[2],
+                        "Premium Paid": client[3],
+                        "Total Members": client[4],
+                        "Paid Members": client[5],
+                        "Prem Month": client[6],
+                        "Med/Den": client[7],
+                        "Comm Scale": client[8],
+                        "Retro": client[9],
+                        "Exchange": client[10],
+                        "Commission Amount": client[11],
+                    })
+        
+        for i in range(1):
+            data[i]["Converted from .pdf by"] = ""
+        
+        df = pd.DataFrame(data)
+        return df, self.pdf_output_name
