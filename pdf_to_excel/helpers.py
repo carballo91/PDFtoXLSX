@@ -182,6 +182,7 @@ class PDFEditor:
 
         # Extract text from page 4
         text = self.extract_text()
+        print(text)
 
         # Extract 'Run Date' and 'Agents' information
         agents = re.findall(r"Subtotals for Agent (\w+)\s+([A-Z,.\s]+)", text)
@@ -194,6 +195,7 @@ class PDFEditor:
 
         for i, agent in enumerate(agents):
             large_table = self.extract_large_table(4, i)
+            print(large_table)
 
             for row in large_table:
                 if re.search(r"^[A-Z]+[,-]", row[0]):
@@ -771,9 +773,11 @@ class PDFEditor:
         carrier = "Providence Med Adv"
         output_name =  self.pdf_output_name
         text = self.extract_text_from_range(0)
+        
+        print(text)
 
         # agency = re.match(r'^([a-zA-Z ]+)\n\d+',text,re.DOTALL)
-        agency = re.search(r'\w+\n([a-zA-Z ]+?)\nNPN',text,re.DOTALL|re.MULTILINE)
+        agency = re.search(r'\w+\n([a-zA-Z ,]+?)\nNPN',text,re.DOTALL|re.MULTILINE)
         commission_period = re.search(r'Commission Period: ([0-9- ]+)',text)
 
         data = []
@@ -1697,11 +1701,13 @@ class PDFEditor:
     
         
         types_pattern = r'([a-zA-Z0-9 ]+)\nPolicy(.*?)Renewal'
-        clients_pattern = r'(?:^(\w+)\n(?:([A-Z]+, [A-Z]+) ([A-Z0-9 ]+)\n|([A-Z]* ?[A-Z]+,? ?[A-Z]+ ?[a-zA-Z]{0,1}) ((?:AMBR)* [A-Z0-9 ]+)\n|([A-Z]+, [A-Z]+ ?[a-zA-Z]*)\n(.*?)\n)\n?([A-Z0-9-, ]+) (\d+\/\d+\/\d+)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n|^(?:(\w+) ([a-zA-Z]+, [a-zA-Z]+ ?[A-Z]?)|(\w+) ([a-zA-Z,]+ ?-? [a-zA-Z]+ ?[a-zA-Z]{0,1}) ([a-zA-Z0-9 ]+))\n([a-zA-Z0-9 ]+)?\n?^([a-zA-Z0-9, -]+) (\d+\/\d+\/\d+)\n(\d+\/\d+\/\d+)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n)'
+        # clients_pattern = r'(?:^(\w+)\n(?:([A-Z]+, [A-Z]+) ([A-Z0-9 ]+)\n|([A-Z]* ?[A-Z]+,? ?[A-Z]+ ?[a-zA-Z]{0,1}) ((?:AMBR)* [A-Z0-9 ]+)\n|([A-Z]+, [A-Z]+ ?[a-zA-Z]*)\n(.*?)\n)\n?([A-Z0-9-, ]+) (\d+\/\d+\/\d+)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n|^(?:(\w+) ([a-zA-Z]+, [a-zA-Z]+ ?[A-Z]?)|(\w+) ([a-zA-Z,]+ ?-? [a-zA-Z]+ ?[a-zA-Z]{0,1}) ([a-zA-Z0-9 ]+))\n([a-zA-Z0-9 ]+)?\n?^([a-zA-Z0-9, -]+) (\d+\/\d+\/\d+)\n(\d+\/\d+\/\d+)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n)'
+        clients_pattern = r'^(\w+)\n([a-z ]+,? [a-z]+)( [a-z0-9- ]+)?\n([a-z0-9- ]+\n)?([a-z0-9-, ]+)( [0-9]{2}\/[0-9]{2}\/[0-9]{4})?\n([0-9]{2}\/[0-9]{2}\/[0-9]{4})\n([0-9]{2}\/[0-9]{2}\/[0-9]{4}\n)?([0-9\$-\.]+)\n([0-9\.%]+)\n([0-9\$-\.]+)\n([0-9\$-\.]+)\n([0-9\$-\.]+)'
         clients_pattern_1 = r'^(\d+)\n(.*?)\n(.*?)\n(.*?)\n(\d+\/\d+\/\d+)\n(\d+\/\d+\/\d+)'
         for statement in statements:
             types = re.findall(types_pattern,statement,re.MULTILINE|re.DOTALL)
             for tpe in types:
+                print(tpe[1])
                 
                 clients = re.findall(clients_pattern,tpe[1],re.DOTALL|re.MULTILINE|re.IGNORECASE)
                 diff_pdf_clients = re.findall(clients_pattern_1,tpe[1],re.DOTALL|re.MULTILINE|re.IGNORECASE) 
