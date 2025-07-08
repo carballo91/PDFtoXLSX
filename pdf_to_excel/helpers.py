@@ -2182,9 +2182,10 @@ class PDFEditor:
         agents_data_pattern = r'Writing Agent(.*?)Total Commission'
         agents_data = re.findall(agents_data_pattern,text,re.DOTALL|re.IGNORECASE)
         
-        agents_pattern = r'^(\w+) (\w+) ([a-z-, ]+) (\d) (\d+ )?(\d+\/\d+) (\d+) ([0-9.,-]+) ([0-9.,-]+) (\w+) ([0-9.,-]+)'
+        agents_pattern = r'^(\w+) (\w+) ([a-z-, ]+) (\d) (\d+ )?(\d+\/\d+ )?([0-9-]+) ([0-9.,-]+) ([0-9.,-]+) (\w+) ([0-9.,-]+)'
         
         for agent_data in agents_data:
+            print(agent_data)
             agents = re.findall(agents_pattern,agent_data,re.DOTALL|re.IGNORECASE|re.MULTILINE)
             for agent in agents:
                 data.append({
