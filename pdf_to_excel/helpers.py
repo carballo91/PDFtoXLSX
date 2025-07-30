@@ -2998,17 +2998,22 @@ class PDFEditor:
         carrier = "BCBS SC ACA"
   
         filtered_agency_text = self.clean_lines_main(column_ranges)
-        agency_pattern = r'^agency, (\w+), ([a-z ]+)$'
+        agency_pattern = r'^agency, (\w+), ([a-z ,]+)$'
         
         agency = re.search(agency_pattern,filtered_agency_text,re.IGNORECASE|re.MULTILINE).groups()
         
         filtered_text = self.clean_lines_main(column_ranges_two,y_tolerance=6)
         
         clients_pattern = r'([a-z -]+), (\w+), ([a-z ]+), ([0-9\/]+), (\w+), ([0-9\/]+), ([0-9\.,]+), (\$ [0-9\.,]+), ([0-9\.]+),(.*?), (\w+)'
+        clients_pattern2 = r'([a-z \-\']+), (\w+), ([a-z ]+), ([0-9\/]+), ?(\w+)?, ([0-9\/]+), (\w+), (\d+), ([0-9\.,]+), (\$ [0-9\.,]+), ([0-9\.]+),(.*?), (\w+)'
         
         clients = re.findall(clients_pattern,filtered_text,re.IGNORECASE|re.DOTALL|re.MULTILINE)
+        if not clients:
+            clients = re.findall(clients_pattern2,filtered_text,re.IGNORECASE|re.DOTALL|re.MULTILINE)
+            
 
         for client in clients:
+            print(len(client))
             data.append({
                 "Carrier" : carrier,
                 "Agency Name" : agency[1],
@@ -3019,11 +3024,11 @@ class PDFEditor:
                 "Eff Date" : client[3],
                 "TC" : client[4],
                 "Due Date" : client[5],
-                "Initial Premium" : client[6],
-                "Percap Percent" : client[7],
-                "Commission Amount" : client[8],
-                "Adj Rea" : client[9],
-                "Selling Agent" : client[10],
+                "Initial Premium" : client[8] if len(client) > 11 else client[6],
+                "Percap Percent" : client[9] if len(client) > 11 else client[7],
+                "Commission Amount" : client[10] if len(client) > 11 else client[8],
+                "Adj Rea" : client[11] if len(client) > 11 else client[9],
+                "Selling Agent" : client[12] if len(client) > 11 else client[10],
             })
 
         for i in range(1):
