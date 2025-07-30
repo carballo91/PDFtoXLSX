@@ -424,3 +424,46 @@ class PDFS(PDFEditor):
         
         df = pd.DataFrame(data)
         return df, self.pdf_output_name
+    
+    def bcbs_kc(self):
+        carrier = "BCBS KC"
+        data = []
+        text = self.extract_text()
+        
+        agency_type_pattern = r'([a-z, ]+) (statement of commissions)'
+        agency_type = re.search(agency_type_pattern,text,re.IGNORECASE)
+        
+        producers_tables_pattern = r'blue kc producer number ([a-z0-9 -]+) ([a-z ,]+)(.*?)total for'
+        clients_pattern = r'^(\d+) (\w+) ([a-z ,]+) ([a-z]+) (\d+\/\d+\/\d+) (\d+\/\d+\/\d+) (\d+) (\$? ?[0-9\.]+) (\d+\%?) (\$? ?[0-9\.]+)'
+        
+        if not agency_type:
+            return None, None
+        agency,commission_type = agency_type.groups()
+            
+        producers_tables = re.findall(producers_tables_pattern,text,re.IGNORECASE|re.MULTILINE|re.DOTALL) 
+        
+        for producers in producers_tables:
+            clients = re.findall(clients_pattern,producers[2],re.IGNORECASE|re.MULTILINE)
+            for client in clients:
+                data.append({
+                    "Carrier": carrier,
+                    "Agency": agency,
+                    "Type": commission_type,
+                    "Producer Number": producers[0],
+                    "Producer Name": producers[1],
+                    "Group Number": client[0],
+                    "Subscriber ID": client[1],
+                    "Name": client[2],
+                    "Product": client[3],
+                    "Effective Date": client[4],
+                    "Premium Due Date": client[5],
+                    "Membership Year": client[6],
+                    "Premium Amount": client[7],
+                    "Rate": client[8],
+                    "Commission Amount": client[9],
+                })
+        for i in range(1):
+            data[i]["Converted from .pdf by"] = ""
+        
+        df = pd.DataFrame(data)
+        return df, self.pdf_output_name
