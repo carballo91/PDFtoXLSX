@@ -231,6 +231,32 @@ def upload_pdf(request):
                     df,output_name = extended_pdf_editor.sons_of_norway()
                 elif "Group ID Group Name Total Premium Premium Paid Total Paid Prem Med/Den Comm Retro ?Commission" in first_page_text:
                     df,output_name = extended_pdf_editor.providence2()
+                elif "GROUP/SUBSCR NAME SUBSCR ID ALTERNATE ID TYPE EFF DATE C DUE DATE TYPE RACTS PAID PERCENT AMOUNT REA AGENT" in first_page_text:
+                    column_ranges = [
+                        (15,41),
+                        (47,64),
+                        (96,185),
+                    ]
+        
+                    column_ranges_two = [
+                        (15,97),
+                        (97,172),
+                        (177,223),
+                        (223,255),
+                        (256,263),
+                        (263,295),
+                        (295,315),
+                        (324,335),
+                        (338,371),
+                        (374,408),
+                        (425,448),
+                        (448,461),
+                        (461,487),
+                    ]
+                    df,output_name = pdf_editor.bcbs_sc(column_ranges,column_ranges_two)
+                    
+                else:
+                    df,output_name = extended_pdf_editor.bcbs_kc()
                 # elif "Kaiser Foundation Health Plan of Georgia" in first_page_text:
                 #     df,output_name = pdf_editor.kaiser_georgia()
                 # Add other conditions as needed...
