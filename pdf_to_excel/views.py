@@ -235,7 +235,7 @@ def upload_pdf(request):
                     column_ranges = [
                         (15,41),
                         (47,64),
-                        (96,185),
+                        (90,185),
                     ]
         
                     column_ranges_two = [
