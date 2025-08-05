@@ -430,40 +430,76 @@ class PDFS(PDFEditor):
         data = []
         text = self.extract_text()
         
-        agency_type_pattern = r'([a-z, ]+) (statement of commissions)'
-        agency_type = re.search(agency_type_pattern,text,re.IGNORECASE)
+        agency_pattern_1 = r'([a-z, ]+) (statement of commissions)'
+        agency_pattern_2 = r'([a-z, ]+)\n[a-z]+, [a-z]+, \d+'
+        agency_1 = re.search(agency_pattern_1,text,re.IGNORECASE)
+        agency_2 = re.search(agency_pattern_2,text,re.IGNORECASE|re.DOTALL|re.MULTILINE)
         
-        producers_tables_pattern = r'blue kc producer number ([a-z0-9 -]+) ([a-z ,]+)(.*?)total for'
+        producers_tables_pattern = r'^blue kc producer number ([a-z0-9 -]+) ([a-z ,]+)(.*?)total for'
         clients_pattern = r'^(\d+) (\w+) ([a-z ,]+) ([a-z]+) (\d+\/\d+\/\d+) (\d+\/\d+\/\d+) (\d+) (\$? ?[0-9\.]+) (\d+\%?) (\$? ?[0-9\.]+)'
+        clients_pattern_1 = r'([0-9a-z]+) ([a-z, ]+) ([a-z]+) (\d+\/\d+) (\d+) (\$ [0-9\-]+\.[0-9]+)'
         
-        if not agency_type:
-            return None, None
-        agency,commission_type = agency_type.groups()
+        
+        if not agency_1 and not agency_2:
+            return None,None
+        
+        if agency_1:
+            agency = agency_1.group(1)
+            commission_type = "INDIVIDUAL AND FAMILY Statement of Commissions"
+        elif agency_2:
+            agency = agency_2.group(1)
+            commission_type = "ACA Individual Marketplace Statement of Commissions"
             
         producers_tables = re.findall(producers_tables_pattern,text,re.IGNORECASE|re.MULTILINE|re.DOTALL) 
         
         for producers in producers_tables:
             clients = re.findall(clients_pattern,producers[2],re.IGNORECASE|re.MULTILINE)
+            if not clients:
+                clients = re.findall(clients_pattern_1,producers[2],re.IGNORECASE|re.MULTILINE)
             for client in clients:
-                data.append({
-                    "Carrier": carrier,
-                    "Agency": agency,
-                    "Type": commission_type,
-                    "Producer Number": producers[0],
-                    "Producer Name": producers[1],
-                    "Group Number": client[0],
-                    "Subscriber ID": client[1],
-                    "Name": client[2],
-                    "Product": client[3],
-                    "Effective Date": client[4],
-                    "Premium Due Date": client[5],
-                    "Membership Year": client[6],
-                    "Premium Amount": client[7],
-                    "Rate": client[8],
-                    "Commission Amount": client[9],
-                })
-        for i in range(1):
-            data[i]["Converted from .pdf by"] = ""
+                if len(client) == 10:
+                    data.append({
+                        "Carrier": carrier,
+                        "Agency": agency,
+                        "Type": commission_type,
+                        "Producer Number": producers[0],
+                        "Producer Name": producers[1],
+                        "Group Number": client[0],
+                        "Subscriber ID": client[1],
+                        "Name": client[2],
+                        "Product": client[3],
+                        "Effective Date": client[4],
+                        "Premium Due Date": client[5],
+                        "Membership Year": client[6],
+                        "Members": "",
+                        "Premium Amount": client[7],
+                        "Rate": client[8],
+                        "Commission Amount": client[9],
+                    })
+                elif len(client) == 6:
+                    data.append({
+                        "Carrier": carrier,
+                        "Agency": agency,
+                        "Type": commission_type,
+                        "Producer Number": producers[0],
+                        "Producer Name": producers[1],
+                        "Group Number": "",
+                        "Subscriber ID": client[0],
+                        "Name": client[1],
+                        "Product": client[2],
+                        "Effective Date": "",
+                        "Premium Due Date": client[3],
+                        "Membership Year": "",
+                        "Members": client[4],
+                        "Premium Amount": "",
+                        "Rate": "",
+                        "Commission Amount": client[5],
+                    })
+        try:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        except IndexError:
+            return None, None
         
         df = pd.DataFrame(data)
         return df, self.pdf_output_name
