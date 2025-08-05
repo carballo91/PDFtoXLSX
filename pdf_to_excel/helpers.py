@@ -3013,7 +3013,6 @@ class PDFEditor:
             
 
         for client in clients:
-            print(len(client))
             data.append({
                 "Carrier" : carrier,
                 "Agency Name" : agency[1],
