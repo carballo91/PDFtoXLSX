@@ -308,67 +308,122 @@ class PDFS(PDFEditor):
     def royal_neighbors(self):
         """Process the first type of PDF (with 'Run Date' and 'Agents')."""
         output_name = self.pdf_output_name
-
+        data = []
+        column_ranges = [
+                        (0,146),
+                    ]
+        agency_text = self.clean_lines_main(column_ranges=column_ranges,y_tolerance=15)
+        agency_pattern = r'agent earning commission\n([0-9a-z\s\-\,\.]+)$'
+        agency = re.search(agency_pattern,agency_text,re.IGNORECASE|re.DOTALL|re.MULTILINE)
+        
         # Extract text from page 4
         text = self.extract_text()
 
-
         # Extract 'Run Date' and 'Agents' information
-        agents = re.findall(r"(.*?)Subtotals for Agent (\w+)\s+([A-Z,.\s]+)", text,re.IGNORECASE|re.DOTALL)
+        agents_pattern = r'(.*?)Subtotals for Agent (\w+)\s+([A-Z,.\s]+)'
         run_date = re.findall(r"Run Date:\s(\d{,2}\/\d{,2}\/\d{4})", text)
-        clients_pattern = r'([a-z, -]+ )?([0-9]+)( \w+)? ([0-9]{2}\/[0-9]{2}\/[0-9]{4}) ([a-z]+) ([0-9]{2}\/[0-9]{2}\/[0-9]{4}) ([a-z]+) ([0-9\.]+) ([0-9\$\.\-]+) ([0-9\.]+) ([0-9\$\.\-]+) ([0-9\$\.\-]+) ([0-9\$\.\-\(\)]+)'
+        period_ending = re.search(r'period ending:\s(\d{,2}\/\d{,2}\/\d{4})',text,re.IGNORECASE)
+
+        # clients_pattern = r'([a-z, -]+ )?([0-9]+)( \w+)? ([0-9]{2}\/[0-9]{2}\/[0-9]{4}) ([a-z]+) ([0-9]{2}\/[0-9]{2}\/[0-9]{4}) ([a-z]+) ([0-9\.]+) ([0-9\$\.\-]+) ([0-9\.]+) ([0-9\$\.\-]+) ([0-9\$\.\-]+) ([0-9\$\.\-\(\)]+)'
         extra_cols_pattern = r'balance\n(.*?)earned'
-        extra_rows_pattern = r'([0-9\$\.]+)( [a-z ]+)?'
-            
-        if not agents:
-            return None, None  # Handle invalid case
+        extra_rows_pattern = r'^([0-9\$\.]+)( [a-z ]+)?'
+        
+        advance_commission_pattern = r'advance commission(.*?)advance commission summary'
+        advance_commission_clients_pattern = r'([a-z, -]+ )?([0-9]+)( \w+)? ([0-9]{2}\/[0-9]{2}\/[0-9]{4}) ([0-9]{2}\/[0-9]{2}\/[0-9]{4}) ([a-z]+) ([a-z0-9\s\-]+) ([0-9\$\.\-]+) ([0-9\%\.]+) ([0-9\$\.\-]+)'
+        
+        earned_commission_pattern = r'earned commission(.*?)earned commission summary'
+        earned_commission_clients_pattern = r'([a-z, -]+ )?([0-9]+)( \w+)? ([0-9]{2}\/[0-9]{2}\/[0-9]{4}) ([a-z]+) ([0-9]{2}\/[0-9]{2}\/[0-9]{4}) ([a-z]+) ([0-9\.]+) ([0-9\$\.\-]+) ([0-9\.]+) ([0-9\$\.\-]+) ([0-9\$\.\-]+) ([0-9\$\.\-\(\)]+)'
+        
+        advance_commissions = re.findall(advance_commission_pattern,text,re.IGNORECASE|re.DOTALL)
+        earned_commissions = re.findall(earned_commission_pattern,text,re.IGNORECASE|re.DOTALL)
+        
+        if earned_commissions:
+            for e_commission in earned_commissions:
+                e_comm_agents = re.findall(agents_pattern,e_commission,re.IGNORECASE|re.DOTALL)
+                for e_comm_agent in e_comm_agents:
+                    e_comm_clients = re.findall(earned_commission_clients_pattern,e_comm_agent[0],re.IGNORECASE|re.DOTALL)
+                    agent_name = e_comm_agent[2]
+                    agent_id = e_comm_agent[1]
 
-        new_data = []
+                    for e_comm_client in e_comm_clients:
+                        data.append({
+                            "Carrier": "Royal Neighbors",
+                            "Agency": agency.group(1),
+                            "Run Date": run_date[0],
+                            "Period Ending": period_ending.group(1),
+                            "Commission Type": "Earned Commission Statement",
+                            "Agent Name": agent_name,                       
+                            "Agent ID": agent_id,
+                            "Insured's Name": e_comm_client[0],
+                            "Certificate": e_comm_client[1],
+                            "Product ID": e_comm_client[2],
+                            "Issue Date": e_comm_client[3],
+                            "Effective Date": "",
+                            "Mode": e_comm_client[4],
+                            "Description": "",
+                            "Premium": e_comm_client[8],
+                            "Comm%": e_comm_client[9],
+                            "Advance Amount": "",
+                            "Paid To Date": e_comm_client[5],
+                            "1st Yr Rnwl": e_comm_client[6],
+                            "Split%": e_comm_client[7],
+                            "Earned": e_comm_client[10],
+                            "Applied To Advance": e_comm_client[11],
+                            "Amt To Pay": e_comm_client[12],
+                        })             
+                
 
-        for agent in agents:
-            print(agent[0])
-            clients = re.findall(clients_pattern,agent[0],re.IGNORECASE|re.DOTALL)
-
-            for client in clients:
-
-                new_data.append({
-                    "Run Date": run_date[0],
-                    "Carrier": "Royal Neighbors",
-                    "Agent Name": agent[2],
-                    "Agent ID": agent[1],
-                    "Insured's Name": client[0],
-                    "Certificate": client[1],
-                    "Prod ID": client[2],
-                    "Issue Date": client[3],
-                    "Mode": client[4],
-                    "Paid To Date": client[5],
-                    "1st Yr Rnwl": client[6],
-                    "Split%": client[7],
-                    "Prem": client[8],
-                    "Comm%": client[9],
-                    "Earned": client[10],
-                    "Applied To Advance": client[11],
-                    "Amt To Pay": client[12],
-                }) 
         extra_cols = re.findall(extra_cols_pattern,text,re.IGNORECASE|re.DOTALL)
-
         for cols in extra_cols:
-            rows = re.findall(extra_rows_pattern,cols,re.IGNORECASE)
-            for d, e in zip(new_data, rows):
+            rows = re.findall(extra_rows_pattern,cols,re.IGNORECASE|re.MULTILINE)
+            for d, e in zip(data, rows):
                 d["Cert Adv Balance"] = e[0]
                 d["Comment"] = e[1]
 
-        # for d, e in zip(new_data, extra_cols):
-        #     d["Cert Adv Balance"] = e[0]
-        #     d["Comment"] = e[1]
+
+        if advance_commissions:
+            for adv_commission in advance_commissions:
+                adv_comm_agents = re.findall(agents_pattern,adv_commission,re.IGNORECASE|re.DOTALL)
+                for adv_comm_agent in adv_comm_agents:
+                    adv_comm_clients = re.findall(advance_commission_clients_pattern,adv_comm_agent[0],re.IGNORECASE|re.DOTALL)
+                    agent_name = adv_comm_agent[2]
+                    agent_id = adv_comm_agent[1]
+                    print(adv_comm_agent[1])
+                    print(adv_comm_agent[2])
+                    for adv_comm_client in adv_comm_clients:
+                        data.append({
+                            "Carrier": "Royal Neighbors",
+                            "Agency": agency.group(1),
+                            "Run Date": run_date[0],
+                            "Period Ending": period_ending.group(1),
+                            "Commission Type": "ADVANCE Commission Statement",
+                            "Agent Name": agent_name,                       
+                            "Agent ID": agent_id,
+                            "Insured's Name": adv_comm_client[0],
+                            "Certificate": adv_comm_client[1],
+                            "Product ID": adv_comm_client[2],
+                            "Issue Date": adv_comm_client[3],
+                            "Effective Date": adv_comm_client[4],
+                            "Mode": adv_comm_client[5],
+                            "Description": adv_comm_client[6],
+                            "Premium": adv_comm_client[7],
+                            "Comm%": adv_comm_client[8],
+                            "Advance Amount": adv_comm_client[9],
+                            "Paid To Date": "",
+                            "1st Yr Rnwl": "",
+                            "Split%": "", 
+                            "Earned": "",
+                            "Applied To Advance":"",
+                            "Amt To Pay": "",
+                        })
 
         # Add custom column
-        if len(new_data) >= 1:
+        if len(data) >= 1:
             for i in range(1):
-                new_data[i]["Converted from .pdf by"] = ""
+                data[i]["Converted from .pdf by"] = ""
 
         # Convert to pandas DataFrame
-        df = pd.DataFrame(new_data)
+        df = pd.DataFrame(data)
         
         return df, output_name
     
@@ -439,6 +494,9 @@ class PDFS(PDFEditor):
         clients_pattern = r'^(\d+) (\w+) ([a-z ,]+) ([a-z]+) (\d+\/\d+\/\d+) (\d+\/\d+\/\d+) (\d+) (\$? ?[0-9\.]+) (\d+\%?) (\$? ?[0-9\.]+)'
         clients_pattern_1 = r'([0-9a-z]+) ([a-z, ]+) ([a-z]+) (\d+\/\d+) (\d+) (\$ [0-9\-]+\.[0-9]+)'
         
+        manual_adjustments_pattern = r'manual adjustments\n(.*?)total manual adjustments'
+        manual_adjustments = re.findall(manual_adjustments_pattern,text,re.IGNORECASE|re.DOTALL)
+        
         
         if not agency_1 and not agency_2:
             return None,None
@@ -495,6 +553,73 @@ class PDFS(PDFEditor):
                         "Rate": "",
                         "Commission Amount": client[5],
                     })
+        if manual_adjustments:
+            adjustment_pattern = r'(\d+) ([a-z\,\s\-]+) (\w+) ([a-z\,\s\-]+) (\d+\/\d+) ([a-z\,\s\-]+) ([0-9\$\-\.]+)'
+            for adjustments in manual_adjustments:
+                adjustment = re.findall(adjustment_pattern,adjustments,re.IGNORECASE|re.DOTALL)
+                for adj in adjustment:
+                    data.append({
+                        "Carrier": "",
+                        "Agency": "",
+                        "Type": adj[5],
+                        "Producer Number": adj[0],
+                        "Producer Name": adj[1],
+                        "Group Number": "",
+                        "Subscriber ID": adj[2],
+                        "Name": adj[3],
+                        "Product": "",
+                        "Effective Date": "",
+                        "Premium Due Date": adj[4],
+                        "Membership Year": "",
+                        "Members": "",
+                        "Premium Amount": "",
+                        "Rate": "",
+                        "Commission Amount": adj[6],
+                    })
+        try:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        except IndexError:
+            return None, None
+        
+        df = pd.DataFrame(data)
+        return df, self.pdf_output_name
+    
+    def health_trust(self):
+        carrier = "Health Trust Medishare"
+        data = []
+        text = self.extract_text()
+        
+        agency_info_pattern = r'(\d+\/\d+\/\d+)\n([a-z\,\-\s]+) - (\d+)' # Filters Date,Agency and Agency ID
+        agency_info = re.search(agency_info_pattern,text,re.IGNORECASE)
+        
+        if not agency_info:
+            return None, None
+        
+        date, agency, agency_id = agency_info.groups()
+        
+        clients_pattern = r'(\d+) ([a-z]+) ([a-z]+) ([a-z0-9\-]+) (\d+\/\d+\/\d+) ([0-9\s\/]+) ([a-z\s\-]+) (\d+) ([\$0-9\.]+) ([0-9\%\.]+) ([\$0-9\.]+)'
+        clients = re.findall(clients_pattern,text,re.IGNORECASE|re.DOTALL)
+        
+        for client in clients:
+            data.append({
+                "Carrier": carrier,
+                "Statement Date": date,
+                "Agency Name": agency,
+                "Agency ID": agency_id,
+                "Share Number": client[0],
+                "Member Last": client[1],
+                "Member First": client[2],
+                "Plan": client[3],
+                "Share Strt Date": client[4],
+                "Share Month": client[5],
+                "Agent Name": client[6],
+                "Yr": client[7],
+                "Monthly Share": client[8],
+                "Rate": client[9],
+                "Comm": client[10],
+            })
+            
         try:
             for i in range(1):
                 data[i]["Converted from .pdf by"] = ""
