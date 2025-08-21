@@ -39,7 +39,7 @@ def upload_pdf(request):
                 
                 # start_time = time.time()
                 # Extract text from the PDF and determine processing method
-                passwords = [None,"2646","WG500","LBL22728","7964","mphc4apps"]
+                passwords = [None,"2646","WG500","LBL22728","7964","mphc4apps","LBL65710"]
                 pw = pdf_name.rstrip("Z")
                 passwords.append(pw)
                 for password in passwords:
@@ -259,6 +259,8 @@ def upload_pdf(request):
                     df,output_name = extended_pdf_editor.bcbs_kc()
                 elif "Share Number Member Plan Share Strt Date Share Month Yr Monthly Share Rate Comm" in first_page_text:
                     df,output_name = extended_pdf_editor.health_trust()
+                else:
+                    extended_pdf_editor.americo()
                 # elif "Kaiser Foundation Health Plan of Georgia" in first_page_text:
                 #     df,output_name = pdf_editor.kaiser_georgia()
                 # Add other conditions as needed...
