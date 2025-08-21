@@ -8,6 +8,7 @@ import fitz
 from pdfminer.pdfdocument import PDFPasswordIncorrect
 from collections import defaultdict
 import math
+from google.cloud import vision 
 
 class PDFEditor:
     def __init__(self, pdf_file):
@@ -50,6 +51,35 @@ class PDFEditor:
                 if rotation > 0:
                     return True
         return False
+    
+    def is_scanned_pdf(self, sample_pages: int = 5) -> bool:
+        """
+        Returns True if the PDF looks like a scanned (image-only) PDF.
+        Returns False if it appears to contain OCR or digitally embedded text.
+
+        sample_pages: How many pages to check before deciding.
+        """
+        try:
+            with pdfplumber.open(self.pdf_file) as pdf:
+                pages_to_check = min(sample_pages, len(pdf.pages))
+                for i in range(pages_to_check):
+                    page = pdf.pages[i]
+                    # pdfplumber extracts characters ONLY if a text layer exists
+                    if page.chars:
+                        return False   # text found → not scanned
+            return True  # no text found on sampled pages → scanned
+        except Exception as e:
+            print(f"Error checking PDF: {e}")
+            return True
+        
+    def ocr_image(self) -> str:
+        client = vision.ImageAnnotatorClient()        # ← ADD THIS
+
+        # If using bytes:
+        content = self.pdf_file.read()
+        image = vision.Image(content=content)
+        response = client.text_detection(image=image)
+        return response.text_annotations[0].description if response.text_annotations else ""
     
     def extract_page_text(self, pdf, page_num):
         if 0 <= page_num < len(pdf.pages):
@@ -1563,7 +1593,7 @@ class PDFEditor:
         date_pattern = r'Billing Period: ([0-9\/ -]+)'
         date = re.search(date_pattern,full_text).group(1)
 
-        broker_agency_pattern = r'Broker ID: (\w+)\n([a-zA-Z0-9 ]+)'
+        broker_agency_pattern = r'Broker ID: ([a-zA-Z0-9 \-]+)\n([a-zA-Z0-9 \-]+)'
         broker_id, agency = re.search(broker_agency_pattern,full_text,re.DOTALL|re.MULTILINE).groups()
         
         commissions_pattern = r'([a-zA-Z0-9 \/\'&\,.-]+) (?:\(\w+\) )?(\([a-zA-Z0-9 -]+\))(.*?)Total Entries'
@@ -1877,12 +1907,15 @@ class PDFEditor:
           
     def libery_bankers(self):
         output_name = self.pdf_output_name
-        pw_name = self.pdf_output_name.split()[2]
-        pw = pw_name.rstrip("Z")
-        print("this is the output name")
-        print(output_name)
-        passwords = ["WG500","LBL22728"]
-        passwords.append(pw)
+        passwords = ["WG500","LBL22728","LBL65710"]
+        text = None
+        try:
+            pw_name = self.pdf_output_name.split()[2]
+            pw = pw_name.rstrip("Z")
+            passwords.append(pw)
+        except IndexError:
+            pass
+                
         is_lbl = False
         for password in passwords:
             is_lbl = False
@@ -1896,11 +1929,14 @@ class PDFEditor:
                 break
             except PDFPasswordIncorrect:
                 continue
+        if not text:
+            return None, None
         data = []
         
         carrier = "Liberty Bankers"
         # print(text)
         agency_pattern = r'n\s([a-z, &]+)\s+Liberty Bankers'
+        
         agency = re.search(agency_pattern,text,re.IGNORECASE).group(1)
         
         statements_pattern = r'Beginning Balances.*?\n(.*?)Statement Totals'
