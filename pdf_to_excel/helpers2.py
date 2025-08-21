@@ -325,14 +325,14 @@ class PDFS(PDFEditor):
         period_ending = re.search(r'period ending:\s(\d{,2}\/\d{,2}\/\d{4})',text,re.IGNORECASE)
 
         # clients_pattern = r'([a-z, -]+ )?([0-9]+)( \w+)? ([0-9]{2}\/[0-9]{2}\/[0-9]{4}) ([a-z]+) ([0-9]{2}\/[0-9]{2}\/[0-9]{4}) ([a-z]+) ([0-9\.]+) ([0-9\$\.\-]+) ([0-9\.]+) ([0-9\$\.\-]+) ([0-9\$\.\-]+) ([0-9\$\.\-\(\)]+)'
-        extra_cols_pattern = r'balance\n(.*?)earned'
+        extra_cols_pattern = r'balance\n(.*?)commission'
         extra_rows_pattern = r'^([0-9\$\.]+)( [a-z ]+)?'
         
         advance_commission_pattern = r'advance commission(.*?)advance commission summary'
-        advance_commission_clients_pattern = r'([a-z, -]+ )?([0-9]+)( \w+)? ([0-9]{2}\/[0-9]{2}\/[0-9]{4}) ([0-9]{2}\/[0-9]{2}\/[0-9]{4}) ([a-z]+) ([a-z0-9\s\-]+) ([0-9\$\.\-]+) ([0-9\%\.]+) ([0-9\$\.\-]+)'
+        advance_commission_clients_pattern = r'([a-z, -]+ )?([0-9]+)( \w+)? ([0-9]{2}\/[0-9]{2}\/[0-9]{4}) ([0-9]{2}\/[0-9]{2}\/[0-9]{4}) ([a-z]+) ([a-z0-9\s\-]+) ([0-9\$\.\-\,]+) ([0-9\%\.]+) ([0-9\$\.\-\,]+)'
         
         earned_commission_pattern = r'earned commission(.*?)earned commission summary'
-        earned_commission_clients_pattern = r'([a-z, -]+ )?([0-9]+)( \w+)? ([0-9]{2}\/[0-9]{2}\/[0-9]{4}) ([a-z]+) ([0-9]{2}\/[0-9]{2}\/[0-9]{4}) ([a-z]+) ([0-9\.]+) ([0-9\$\.\-]+) ([0-9\.]+) ([0-9\$\.\-]+) ([0-9\$\.\-]+) ([0-9\$\.\-\(\)]+)'
+        earned_commission_clients_pattern = r'([a-z, -]+ )?([0-9]+)( \w+)? ([0-9]{2}\/[0-9]{2}\/[0-9]{4}) ([a-z]+) ([0-9]{2}\/[0-9]{2}\/[0-9]{4}) ([a-z]+) ([0-9\.]+) ([0-9\$\.\-]+) ([0-9\.]+) ([0-9\$\.\-\,]+) ([0-9\$\.\-]+) ([0-9\$\.\-\(\)\,]+)'
         
         advance_commissions = re.findall(advance_commission_pattern,text,re.IGNORECASE|re.DOTALL)
         earned_commissions = re.findall(earned_commission_pattern,text,re.IGNORECASE|re.DOTALL)
@@ -388,8 +388,7 @@ class PDFS(PDFEditor):
                     adv_comm_clients = re.findall(advance_commission_clients_pattern,adv_comm_agent[0],re.IGNORECASE|re.DOTALL)
                     agent_name = adv_comm_agent[2]
                     agent_id = adv_comm_agent[1]
-                    print(adv_comm_agent[1])
-                    print(adv_comm_agent[2])
+
                     for adv_comm_client in adv_comm_clients:
                         data.append({
                             "Carrier": "Royal Neighbors",
@@ -628,3 +627,13 @@ class PDFS(PDFEditor):
         
         df = pd.DataFrame(data)
         return df, self.pdf_output_name
+    
+    def americo(self):
+        is_scanned = self.is_scanned_pdf(2)
+        text = self.extract_text()
+        
+        print(text)
+        print(is_scanned)
+        
+        ocr = self.ocr_image()
+        print(ocr)
