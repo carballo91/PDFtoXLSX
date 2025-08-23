@@ -260,7 +260,7 @@ def upload_pdf(request):
                 elif "Share Number Member Plan Share Strt Date Share Month Yr Monthly Share Rate Comm" in first_page_text:
                     df,output_name = extended_pdf_editor.health_trust()
                 else:
-                    extended_pdf_editor.americo()
+                    df, output_name = extended_pdf_editor.americo()
                 # elif "Kaiser Foundation Health Plan of Georgia" in first_page_text:
                 #     df,output_name = pdf_editor.kaiser_georgia()
                 # Add other conditions as needed...
