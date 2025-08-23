@@ -637,3 +637,4 @@ class PDFS(PDFEditor):
         
         ocr = self.ocr_image()
         print(ocr)
+        return None, None
