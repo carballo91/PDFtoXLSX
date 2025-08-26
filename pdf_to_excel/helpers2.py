@@ -635,6 +635,6 @@ class PDFS(PDFEditor):
         print(text)
         print(is_scanned)
         
-        ocr = self.ocr_image()
-        print(ocr)
+        # ocr = self.ocr_image()
+        # print(ocr)
         return None, None
