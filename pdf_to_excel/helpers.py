@@ -1734,13 +1734,20 @@ class PDFEditor:
         # clients_pattern = r'(?:^(\w+)\n(?:([A-Z]+, [A-Z]+) ([A-Z0-9 ]+)\n|([A-Z]* ?[A-Z]+,? ?[A-Z]+ ?[a-zA-Z]{0,1}) ((?:AMBR)* [A-Z0-9 ]+)\n|([A-Z]+, [A-Z]+ ?[a-zA-Z]*)\n(.*?)\n)\n?([A-Z0-9-, ]+) (\d+\/\d+\/\d+)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n|^(?:(\w+) ([a-zA-Z]+, [a-zA-Z]+ ?[A-Z]?)|(\w+) ([a-zA-Z,]+ ?-? [a-zA-Z]+ ?[a-zA-Z]{0,1}) ([a-zA-Z0-9 ]+))\n([a-zA-Z0-9 ]+)?\n?^([a-zA-Z0-9, -]+) (\d+\/\d+\/\d+)\n(\d+\/\d+\/\d+)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n)'
         clients_pattern = r'^(\w+)\n([a-z ]+,? [a-z]+)( [a-z0-9- ]+)?\n([a-z0-9- ]+\n)?([a-z0-9-, ]+)( [0-9]{2}\/[0-9]{2}\/[0-9]{4})?\n([0-9]{2}\/[0-9]{2}\/[0-9]{4})\n([0-9]{2}\/[0-9]{2}\/[0-9]{4}\n)?([0-9\$-\.]+)\n([0-9\.%]+)\n([0-9\$-\.]+)\n([0-9\$-\.]+)\n([0-9\$-\.]+)'
         clients_pattern_1 = r'^(\d+)\n(.*?)\n(.*?)\n(.*?)\n(\d+\/\d+\/\d+)\n(\d+\/\d+\/\d+)'
+        
+        clients_pattern_2 = r'^(\w+) ([a-z]+, [a-z]+) ([a-z0-9 ]+)\n([a-z0-9 \-\,]+) (\d+\/\d+\/\d+)\n(\d+\/\d+\/\d+)\n([0-9\.\$\-]+)\n([0-9\.\%\-]+)\n([0-9\.\$\-]+)\n([0-9\.\$\-]+)\n([0-9\.\$\-]+)'
+        clients_pattern_3 = r'^(\w+) ([a-z]+, [a-z]+)\n([a-z0-9 ]+)\n([a-z0-9 \-\,]+) (\d+\/\d+\/\d+)\n(\d+\/\d+\/\d+)\n([0-9\.\$\-]+)\n([0-9\.\%\-]+)\n([0-9\.\$\-]+)\n([0-9\.\$\-]+)\n([0-9\.\$\-]+)'
+        
         for statement in statements:
             types = re.findall(types_pattern,statement,re.MULTILINE|re.DOTALL)
             for tpe in types:
-                print(tpe[1])
+                # print(tpe[1])
                 
                 clients = re.findall(clients_pattern,tpe[1],re.DOTALL|re.MULTILINE|re.IGNORECASE)
                 diff_pdf_clients = re.findall(clients_pattern_1,tpe[1],re.DOTALL|re.MULTILINE|re.IGNORECASE) 
+                
+                clients2 = re.findall(clients_pattern_2,tpe[1],re.DOTALL|re.MULTILINE|re.IGNORECASE)
+                clients3 = re.findall(clients_pattern_3,tpe[1],re.DOTALL|re.MULTILINE|re.IGNORECASE)
                 
                 if clients:
 
@@ -1764,7 +1771,7 @@ class PDFEditor:
                             "Earned Commission": formatted_client[9],
                             "Escrow Adjustment": formatted_client[10],
                         })
-                else:
+                if diff_pdf_clients:
                     for client in diff_pdf_clients:
                         data.append({
                             "FMO": "Peek Performance",
@@ -1782,7 +1789,44 @@ class PDFEditor:
                             "Earned Commission": "",
                             "Escrow Adjustment": "",
                         })
+                        
+                if clients2:
+                    for client2 in clients2:
+                        data.append({
+                            "FMO": "Peek Performance",
+                            "Agency": agency,
+                            "Type": tpe[0],
+                            "Policy No.": client2[0],
+                            "Policyholder": client2[1],
+                            "Product": client2[2],
+                            "Writing Agent": client2[3],
+                            "Effective": client2[4],
+                            "Paid-To": client2[5],
+                            "Comm. Premium": client2[6],
+                            "Rate": client2[7],
+                            "Earned Credit": client2[8],
+                            "Earned Commission": client2[9],
+                            "Escrow Adjustment": client2[10],
+                        })
                     
+                if clients3:
+                    for client3 in clients3:
+                        data.append({
+                            "FMO": "Peek Performance",
+                            "Agency": agency,
+                            "Type": tpe[0],
+                            "Policy No.": client3[0],
+                            "Policyholder": client3[1],
+                            "Product": client3[2],
+                            "Writing Agent": client3[3],
+                            "Effective": client3[4],
+                            "Paid-To": client3[5],
+                            "Comm. Premium": client3[6],
+                            "Rate": client3[7],
+                            "Earned Credit": client3[8],
+                            "Earned Commission": client3[9],
+                            "Escrow Adjustment": client3[10],
+                        })
         if len(data) >= 1:
             for i in range(1):
                 data[i]["Converted from .pdf by"] = ""
