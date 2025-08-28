@@ -387,8 +387,10 @@ class PDFEditor:
         output_name = self.pdf_output_name
         data = []
         text = self.clean_lines_main(column_ranges)
+        
+        print(text)
             
-        tables_pattern = r'balance, forward:, , \$[0-9\.]+\n(.*?)current, balance'
+        tables_pattern = r'balance, forward:, , [0-9\.\(\)\$]+\n(.*?)current, balance'
         commissions_pattern = r'(.*?)total for, (\w+)'
         agents_pattern = r'^(\d+), ([a-z \-\,\.]+), ([a-z \-\,\.]+), (\d+), ([a-z0-9 ]+), ([0-9\/]+), ([a-z ]+), ([0-9\.\$]+),([0-9\. ]+),([0-9\. ]+), ([0-9\.]+), ([0-9\.\$]+)$'
         tables = re.findall(tables_pattern,text,re.DOTALL|re.MULTILINE|re.IGNORECASE)
