@@ -9,6 +9,8 @@ from pdfminer.pdfdocument import PDFPasswordIncorrect
 from collections import defaultdict
 import math
 from google.cloud import vision 
+import cv2
+import numpy as np
 
 class PDFEditor:
     def __init__(self, pdf_file):
@@ -71,6 +73,161 @@ class PDFEditor:
         except Exception as e:
             print(f"Error checking PDF: {e}")
             return True
+        
+    def ocr_pdf_local(self,length=None):
+        t0 = time.perf_counter()
+
+        # Reuse across runs if you have self.client, otherwise create once per call
+        client = getattr(self, "client", None) or vision.ImageAnnotatorClient()
+
+        all_pages_text = []
+        self.pdf_file.seek(0)
+        doc = fitz.open(stream=self.pdf_file.read(), filetype="pdf")
+
+        # ---- tunables for speed/quality ----
+        DPI = 285                 # 230–250 is a sweet spot; smaller than 270
+        JPEG_QUALITY = 82         # 80–85 is good; much smaller than PNG
+        UPSCALE_IF_WIDTH_LT = 1400
+        UPSCALE_FACTOR = 1.12
+
+        def render_gray(page, dpi=DPI):
+            # Render directly to GRAY (saves RGB->gray conversion)
+            mat = fitz.Matrix(dpi/72.0, dpi/72.0)
+            pix = page.get_pixmap(matrix=mat, colorspace=fitz.csGRAY, alpha=False, annots=False)
+            arr = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width)
+            return arr  # single-channel uint8
+
+        def autocrop(binary, pad=8):
+            # find non-white area and crop to it
+            inv = 255 - binary
+            ys, xs = np.where(inv > 0)
+            if xs.size == 0:
+                return binary
+            x0, x1 = max(xs.min() - pad, 0), min(xs.max() + pad, binary.shape[1]-1)
+            y0, y1 = max(ys.min() - pad, 0), min(ys.max() + pad, binary.shape[0]-1)
+            return binary[y0:y1+1, x0:x1+1]
+        
+        if length is None:
+            length = len(doc)
+
+        for page_num in range(length):
+            page = doc[page_num]
+
+            # --- render grayscale at ~240 DPI (fast) ---
+            gray = render_gray(page)
+
+            # quick skip for near-blank pages
+            # if np.mean(gray) > 250:
+            #     all_pages_text.append("")
+            #     continue
+
+            # --- fast, simple binarization ---
+            # light blur helps salt-and-pepper noise; keep small kernel to stay fast
+            gray = cv2.GaussianBlur(gray, (3, 3), 0)
+            # global threshold is faster than adaptive; your 180 threshold works well
+            _, binary = cv2.threshold(gray, 180, 255, cv2.THRESH_BINARY)
+
+            # optional conditional upscale only if the rendered page is small
+            if binary.shape[1] < UPSCALE_IF_WIDTH_LT:
+                new_w = int(binary.shape[1] * UPSCALE_FACTOR)
+                new_h = int(binary.shape[0] * UPSCALE_FACTOR)
+                binary = cv2.resize(binary, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+
+            # crop big white margins before sending to OCR
+            binary = autocrop(binary)
+
+            # --- encode JPEG (much faster/smaller than PNG) ---
+            ok, encoded = cv2.imencode(".jpg", binary, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
+            img_bytes = encoded.tobytes() if ok else binary.tobytes()
+
+            # --- OCR ---
+            image = vision.Image(content=img_bytes)
+            # Use document_text_detection for dense docs; TEXT_DETECTION is slightly faster but less structured
+            response = client.document_text_detection(image=image)
+            
+
+            if response.error.message:
+                raise Exception(f"OCR error: {response.error.message}")
+
+            # --- your original parsing/lining logic unchanged ---
+            words_with_boxes = []
+            for page_obj in response.full_text_annotation.pages:
+                for block in page_obj.blocks:
+                    for para in block.paragraphs:
+                        for word in para.words:
+                            word_text = "".join([s.text for s in word.symbols])
+                            # drop table-rule artifacts as a safety net
+                            if re.fullmatch(r"\|+", word_text) or re.fullmatch(r"[-–—_]+", word_text):
+                                continue
+                            vertices = [(v.x, v.y) for v in word.bounding_box.vertices]
+                            avg_x = sum(v[0] for v in vertices) / 4.0
+                            avg_y = sum(v[1] for v in vertices) / 4.0
+                            words_with_boxes.append((avg_y, avg_x, word_text))
+
+            # Sort top-to-bottom, left-to-right
+            words_with_boxes.sort(key=lambda w: (w[0], w[1]))
+
+            # Smart dedup
+            deduped = []
+            y_tol, x_tol = 3, 5
+            for avg_y, avg_x, text in words_with_boxes:
+                keep = True
+                for i, (dy, dx, dt) in enumerate(deduped):
+                    if abs(avg_y - dy) <= y_tol and abs(avg_x - dx) <= x_tol:
+                        if avg_x > dx:
+                            deduped[i] = (avg_y, avg_x, text)
+                        keep = False
+                        break
+                if keep:
+                    deduped.append((avg_y, avg_x, text))
+            words_with_boxes = deduped
+
+            # Group words into lines
+            lines, current_line, last_y = [], [], None
+            line_y_tolerance = 17
+            for avg_y, avg_x, text in words_with_boxes:
+                if last_y is None or abs(avg_y - last_y) <= line_y_tolerance:
+                    current_line.append((avg_x, text))
+                else:
+                    current_line.sort(key=lambda x: x[0])
+                    lines.append(current_line)
+                    current_line = [(avg_x, text)]
+                last_y = avg_y
+            if current_line:
+                current_line.sort(key=lambda x: x[0])
+                lines.append(current_line)
+
+            # Final per-line cleanup
+            cleaned_lines = []
+            overlap_x_tol = 5
+            for line in lines:
+                unique_line, seen = [], []
+                for x, text in line:
+                    duplicate = False
+                    for sx, st in seen:
+                        if abs(x - sx) <= overlap_x_tol:
+                            duplicate = True
+                            if x > sx:
+                                unique_line = [t for t in unique_line if t[1] != st]
+                                unique_line.append((x, text))
+                            break
+                    if not duplicate:
+                        unique_line.append((x, text))
+                        seen.append((x, text))
+                unique_line.sort(key=lambda t: t[0])
+                cleaned_lines.append(" ".join(t[1] for t in unique_line))
+
+            page_text = "\n".join(cleaned_lines)
+            all_pages_text.append(page_text)
+
+        # If you decide to store the client on the instance:
+        if not hasattr(self, "client"):
+            self.client = client
+
+        # Optional: quick timing to confirm wins
+        print(f"OCR took {time.perf_counter() - t0:.2f}s")
+
+        return "\n\n".join(all_pages_text)
         
     def ocr_image(self) -> str:
         client = vision.ImageAnnotatorClient()        # ← ADD THIS
