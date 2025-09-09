@@ -2,6 +2,7 @@ from .helpers import PDFEditor
 import re
 import pandas as pd
 
+
 class PDFS(PDFEditor):
     def __init__(self, pdf_file):
         super().__init__(pdf_file)
@@ -629,12 +630,263 @@ class PDFS(PDFEditor):
         return df, self.pdf_output_name
     
     def americo(self):
+        carrier = "Americo"
+        data = []
+        print(self.pdf_file)
         is_scanned = self.is_scanned_pdf(2)
-        text = self.extract_text()
+        if is_scanned:
+            text = self.ocr_pdf_local()
+        else:
+            text = self.extract_text()      
+        # Regex that looks for date, agency number and agency name    
+        agency_info_pattern = r'report as of ([0-9\/]+)\n(\w+) ?-? ?\d+ ([a-z \,]+)'
+        agency_info = re.search(agency_info_pattern,text,re.IGNORECASE)
+        date,agency_number,agency_name = agency_info.groups()
         
-        print(text)
-        print(is_scanned)
+        other_types_pattern = r'\* (.*?)\*'
+        other_types = re.search(other_types_pattern,text,re.DOTALL).group(1)
         
-        # ocr = self.ocr_image()
-        # print(ocr)
-        return None, None
+        
+        agents_pattern = r'(.*?)\n(\w+) ([a-z]+ [a-z]+ ?[a-z]+) \d+,?\d+\.'
+        # clients_pattern = r'(\w+) ([a-z ]+) (\d+) (?:\d+ )?(\d+) (\w+) (\d+) ([0-9]{4})( [a-z]+)? ?(\d+)? ?([0-9]{2}) ([a-z]+) (\d+) ([0-9\.\,\-]+) ([a-z \-]+) ([0-9\.]+) (\d+) ([0-9\.\,]+) ([a-z\- ]+)([0-9\.\,\-]+)?'
+        clients_pattern = r'(\w+) ([a-z \-]+) (\d+) (?:\d+ )?(\d+) (\w+) (\d+) ([0-9]{4})( [a-z]+)? ?(\d+)? ?([0-9]{2}) ([a-z]+) (\d+) ([0-9\.\,\-]+) ([a-z \-]+) ([0-9\.]+) (\d+) ([0-9\.\,]+) ([\w\-]+)'
+        
+        o_types_clients_pattern = r'(\w+) ([a-z ]+) (\d+) (?:\d+ )?(\d+) (\w+) (\d+) (\d+) ([a-z]+) ?(\d+) ?(\d+) ([a-z]+) (\d+) ([0-9\.\,]+) ([a-z \-]+) ([0-9\.]+) (\d+)( [0-9\.\,]+)$'
+        
+        #Advance Activity
+        advance_activity_pattern = r'advance activity\nbase(.*?)\*'
+        
+        advance_activity = re.search(advance_activity_pattern,text,re.DOTALL|re.IGNORECASE)
+        if advance_activity:
+            advance_activity = advance_activity.group(1).strip()
+            agents = re.findall(agents_pattern,advance_activity,re.IGNORECASE|re.DOTALL|re.MULTILINE)
+            
+            for agent in agents:
+                clients_pattern2 = r'(\w+) ([a-z ]+) (\d+) (?:\d+ )?(\d+) (\w+) (\d+) ([0-9]{4}) ([0-9]{2}) ([a-z]+) (\d+) ([a-z \-]+) ([0-9\.]+) ([a-z\- ]+)'
+                clients = re.findall(clients_pattern,agent[0],re.IGNORECASE|re.DOTALL|re.MULTILINE)
+                clients2 = re.findall(clients_pattern2,agent[0],re.IGNORECASE|re.DOTALL|re.MULTILINE)
+
+                if clients:
+                    for client in clients:                      
+                        data.append({
+                            "Carrier": carrier,
+                            "Agency Number": agency_number,
+                            "Agency": agency_name,
+                            "Date": date,
+                            "Type": "Advance Activity",
+                            "Writing Agent Number": agent[1],
+                            "Writing Agent Name": agent[2],
+                            "Policy Number": client[0],
+                            "Name/Desc": client[1],
+                            "Issue Age": client[2],
+                            "Eff. Date": client[3],
+                            "Plan": client[4],
+                            "TRDT": client[5],
+                            "PRDT": client[6],
+                            "Months": client[7],
+                            " ": client[8],
+                            "Du": client[9],
+                            "PRO": client[10],
+                            "LV": client[11],
+                            "Base Amount": client[12],
+                            'TRX': client[13],
+                            " ": " ",
+                            "Rate": client[14],
+                            "Split": client[15],
+                            "Amt": client[16],
+                            "Acct": client[17],
+                        })
+                        
+                if clients2:
+                    for client in clients2:
+                    
+                        data.append({
+                            "Carrier": carrier,
+                            "Agency Number": agency_number,
+                            "Agency": agency_name,
+                            "Date": date,
+                            "Type": "Advance Activity",
+                            "Writing Agent Number": agent[1],
+                            "Writing Agent Name": agent[2],
+                            "Policy Number": client[0],
+                            "Name/Desc": client[1],
+                            "Issue Age": client[2],
+                            "Eff. Date": client[3],
+                            "Plan": client[4],
+                            "TRDT": client[5],
+                            "PRDT": client[6],
+                            "Months": "",
+                            " ": "",
+                            "Du": client[7],
+                            "PRO": client[8],
+                            "LV": client[9],
+                            "Base Amount": "",
+                            'TRX': client[10],
+                            " ": " ",
+                            "Rate": "",
+                            "Split": "",
+                            "Amt": client[11],
+                            "Acct": client[12],
+                        })
+                    
+        #First year earnings activity
+        first_year_earnings_activity_pattern = r'first year earnings activity(.*?)total pay basis'
+        first_year_earnings_activity = re.search(first_year_earnings_activity_pattern,text,re.DOTALL|re.IGNORECASE)
+        if first_year_earnings_activity:
+            first_year_earnings_activity = first_year_earnings_activity.group(1).strip()
+
+            clients = re.findall(o_types_clients_pattern,first_year_earnings_activity,re.IGNORECASE|re.DOTALL|re.MULTILINE)
+            for client in clients:
+                data.append({
+                    "Carrier": carrier,
+                    "Agency Number": agency_number,
+                    "Agency": agency_name,
+                    "Date": date,
+                    "Type": "First Year Earnings Activity",
+                    "Writing Agent Number": agency_number,
+                    "Writing Agent Name": agency_name,
+                    "Policy Number": client[0],
+                    "Name/Desc": client[1],
+                    "Issue Age": client[2],
+                    "Eff. Date": client[3],
+                    "Plan": client[4],
+                    "TRDT": client[5],
+                    "PRDT": client[6],
+                    "Months": client[7],
+                    " ": client[8],
+                    "Du": client[9],
+                    "PRO": client[10],
+                    "LV": client[11],
+                    "Base Amount": client[12],
+                    'TRX': client[13],
+                    " ": " ",
+                    "Rate": client[14],
+                    "Split": client[15],
+                    "Amt": "",
+                    "Acct": "",
+                })
+                
+        #Renewal earnings activity
+        renewal_earnings_activity_pattern = r'renewal earnings activity(.*?)total pay basis'
+        renewal_earnings_activity = re.search(renewal_earnings_activity_pattern,text,re.DOTALL|re.IGNORECASE)
+        if renewal_earnings_activity:
+            renewal_earnings_activity = renewal_earnings_activity.group(1).strip()
+
+            clients = re.findall(o_types_clients_pattern,renewal_earnings_activity,re.IGNORECASE|re.DOTALL|re.MULTILINE)
+            for client in clients:
+                data.append({
+                    "Carrier": carrier,
+                    "Agency Number": agency_number,
+                    "Agency": agency_name,
+                    "Date": date,
+                    "Type": "Advance Activity",
+                    "Writing Agent Number": agency_number,
+                    "Writing Agent Name": agency_name,
+                    "Policy Number": client[0],
+                    "Name/Desc": client[1],
+                    "Issue Age": client[2],
+                    "Eff. Date": client[3],
+                    "Plan": client[4],
+                    "TRDT": client[5],
+                    "PRDT": client[6],
+                    "Months": client[7],
+                    " ": client[8],
+                    "Du": client[9],
+                    "PRO": client[10],
+                    "LV": client[11],
+                    "Base Amount": client[12],
+                    'TRX': client[13],
+                    " ": " ",
+                    "Rate": client[14],
+                    "Split": client[15],
+                    "Amt": "",
+                    "Acct": "",
+                })
+                    
+        #Override Activity
+        override_activity_pattern = r'override activity(.*?)total pay basis'
+        override_activity = re.search(override_activity_pattern,text,re.DOTALL|re.IGNORECASE)
+        if override_activity:
+            override_activity = override_activity.group(1).strip()
+
+            agents = re.findall(agents_pattern,override_activity,re.IGNORECASE|re.DOTALL|re.MULTILINE)
+            for agent in agents:
+                clients = re.findall(o_types_clients_pattern,agent[0],re.IGNORECASE|re.DOTALL|re.MULTILINE)
+                for client in clients:
+                    data.append({
+                        "Carrier": carrier,
+                        "Agency Number": agency_number,
+                        "Agency": agency_name,
+                        "Date": date,
+                        "Type": "Advance Activity",
+                        "Writing Agent Number": agent[1],
+                        "Writing Agent Name": agent[2],
+                        "Policy Number": client[0],
+                        "Name/Desc": client[1],
+                        "Issue Age": client[2],
+                        "Eff. Date": client[3],
+                        "Plan": client[4],
+                        "TRDT": client[5],
+                        "PRDT": client[6],
+                        "Months": client[7],
+                        " ": client[8],
+                        "Du": client[9],
+                        "PRO": client[10],
+                        "LV": client[11],
+                        "Base Amount": client[12],
+                        'TRX': client[13],
+                        " ": " ",
+                        "Rate": client[14],
+                        "Split": client[15],
+                        "Amt": "",
+                        "Acct": "",
+                    })
+                    
+        #Chargeback Activity
+        chargeback_activity_pattern = r'chargeback activity(.*?)total pay basis'
+        # chargeback_clients_pattern = r'(\w+) ([a-z ]+) (\d+) (?:\d+ )?(\d+) (\w+) (\d+) (\d+) (\d+) ([a-z]+) (\d+) ([0-9\.\,\-]+) ([a-z \-]+) ([0-9\.]+) (\d+)( [0-9\.\,\-]+)$'
+        chargeback_clients_pattern = r'(\w+) ([a-z ]+) (\d+) (?:\d+ )?(\d+) (\w+) (\d+) (\d+) (\d+) ([a-z]+) (\d+) ([0-9\.\,\-]+) ([a-z \-]+) ([0-9\.]+) (\d+)'
+        chargeback_activity = re.search(chargeback_activity_pattern,text,re.DOTALL|re.IGNORECASE)
+        if chargeback_activity:
+            chargeback_activity = chargeback_activity.group(1).strip()
+
+            agents = re.findall(agents_pattern,chargeback_activity,re.IGNORECASE|re.DOTALL|re.MULTILINE)
+            for agent in agents:
+                clients = re.findall(chargeback_clients_pattern,agent[0],re.IGNORECASE|re.DOTALL|re.MULTILINE)
+                for client in clients:
+                    data.append({
+                        "Carrier": carrier,
+                        "Agency Number": agency_number,
+                        "Agency": agency_name,
+                        "Date": date,
+                        "Type": "Advance Activity",
+                        "Writing Agent Number": agent[1],
+                        "Writing Agent Name": agent[2],
+                        "Policy Number": client[0],
+                        "Name/Desc": client[1],
+                        "Issue Age": client[2],
+                        "Eff. Date": client[3],
+                        "Plan": client[4],
+                        "TRDT": client[5],
+                        "PRDT": client[6],
+                        "Months": "",
+                        " ": "",
+                        "Du": client[7],
+                        "PRO": client[8],
+                        "LV": client[9],
+                        "Base Amount": client[10],
+                        'TRX': client[11],
+                        " ": " ",
+                        "Rate": client[12],
+                        "Split": client[13],
+                        "Amt": "",
+                        "Acct": "",
+                    })                
+        try:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        except IndexError:
+            return None, None
+
+        df = pd.DataFrame(data)
+        return df, self.pdf_output_name
