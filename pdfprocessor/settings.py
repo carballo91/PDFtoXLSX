@@ -1,4 +1,11 @@
-import os
+import os,tempfile
+
+# --- Google Cloud credentials setup ---
+if "GOOGLE_CLOUD_KEY" in os.environ:
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+        f.write(os.environ["GOOGLE_CLOUD_KEY"])
+        creds_path = f.name
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = creds_path
 """
 Django settings for pdfprocessor project.
 
@@ -22,15 +29,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
 
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+load_dotenv()
+
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 if not SECRET_KEY:
     raise ImproperlyConfigured("The DJANGO_SECRET_KEY environment variable is not set.")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['pdftoxlsx-xbpu.onrender.com','pdftoxlsx-h9ma.onrender.com']
+ALLOWED_HOSTS = ['pdftoxlsx-xbpu.onrender.com','pdftoxlsx-h9ma.onrender.com','localhost','127.0.0.1']
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
@@ -59,7 +69,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'csp.middleware.CSPMiddleware',
 ]
-CSP_FRAME_ANCESTORS = ["https://comtrack.io"]
+CSP_FRAME_ANCESTORS = ["https://comtrack.io", "127.0.0.1"]
 CSP_STYLE_SRC = [
     "'self'",
     "'unsafe-inline'",  # If using inline styles
