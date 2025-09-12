@@ -60,8 +60,6 @@ def upload_pdf(request):
                 
                 df = None
                 output_name = ""
-
-                print(f"text is {first_page_text}")
   
                 if "Royal Neighbors of America" in first_page_text:
                     # Process using method for the PDF with "Run Date" and "Agents"
@@ -318,4 +316,5 @@ def download_file(request, filename):
         return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=filename)
     else:
         return HttpResponse("File not found", status=404)
+
 
