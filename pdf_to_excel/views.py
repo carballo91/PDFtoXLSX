@@ -264,6 +264,8 @@ def upload_pdf(request):
                     df,output_name = extended_pdf_editor.health_trust()
                 elif "Policy Number Name / Desc Issue Age Eff . Date Plan TRDT PRDT Months DU PRO LV TRX Rate Split Amt Acct Primary Balance" in first_page_text:
                     df, output_name = extended_pdf_editor.americo()
+                elif "Member ID Name Product State Date Date Period Retro ? Premium Premium Premium Rate Rate Rate Count Rate Override Paid" in first_page_text or "Member ID Name Product Policy State Date Date Period Retro ? Rate Amount" in first_page_text:
+                    df, output_name = extended_pdf_editor.caresource()
                 # elif "Kaiser Foundation Health Plan of Georgia" in first_page_text:
                 #     df,output_name = pdf_editor.kaiser_georgia()
                 # Add other conditions as needed...
@@ -316,5 +318,3 @@ def download_file(request, filename):
         return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=filename)
     else:
         return HttpResponse("File not found", status=404)
-
-
