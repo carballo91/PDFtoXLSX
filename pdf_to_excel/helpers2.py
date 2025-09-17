@@ -632,7 +632,6 @@ class PDFS(PDFEditor):
     def americo(self):
         carrier = "Americo"
         data = []
-        print(self.pdf_file)
         is_scanned = self.is_scanned_pdf(2)
         if is_scanned:
             text = self.ocr_pdf_local()
@@ -649,7 +648,7 @@ class PDFS(PDFEditor):
         
         agents_pattern = r'(.*?)\n(\w+) ([a-z]+ [a-z]+ ?[a-z]+) \d+,?\d+\.'
         # clients_pattern = r'(\w+) ([a-z ]+) (\d+) (?:\d+ )?(\d+) (\w+) (\d+) ([0-9]{4})( [a-z]+)? ?(\d+)? ?([0-9]{2}) ([a-z]+) (\d+) ([0-9\.\,\-]+) ([a-z \-]+) ([0-9\.]+) (\d+) ([0-9\.\,]+) ([a-z\- ]+)([0-9\.\,\-]+)?'
-        clients_pattern = r'(\w+) ([a-z \-]+) (\d+) (?:\d+ )?(\d+) (\w+) (\d+) ([0-9]{4})( [a-z]+)? ?(\d+)? ?([0-9]{2}) ([a-z]+) (\d+) ([0-9\.\,\-]+) ([a-z \-]+) ([0-9\.]+) (\d+) ([0-9\.\,]+) ([\w\-]+)'
+        clients_pattern = r'(\w+) ([a-z \-]+) (\d+) (?:\d+ )?(\d+) (\w+) (\d+) ([0-9]{4})( [a-z]+)? ?(\d+)? ?([0-9]{2}) ([a-z]+) (\d+) ([0-9\.\,\-]+) ([a-z \-]+) ([0-9\.]+) (\d+) ([0-9\.\,]+) ([\w\-]+)([0-9\.\, ]*)'
         
         o_types_clients_pattern = r'(\w+) ([a-z ]+) (\d+) (?:\d+ )?(\d+) (\w+) (\d+) (\d+) ([a-z]+) ?(\d+) ?(\d+) ([a-z]+) (\d+) ([0-9\.\,]+) ([a-z \-]+) ([0-9\.]+) (\d+)( [0-9\.\,]+)$'
         
@@ -662,7 +661,7 @@ class PDFS(PDFEditor):
             agents = re.findall(agents_pattern,advance_activity,re.IGNORECASE|re.DOTALL|re.MULTILINE)
             
             for agent in agents:
-                clients_pattern2 = r'(\w+) ([a-z ]+) (\d+) (?:\d+ )?(\d+) (\w+) (\d+) ([0-9]{4}) ([0-9]{2}) ([a-z]+) (\d+) ([a-z \-]+) ([0-9\.]+) ([a-z\- ]+)'
+                clients_pattern2 = r'(\w+) ([a-z ]+) (\d+) (?:\d+ )?(\d+) (\w+) (\d+) ([0-9]{4}) ([0-9]{2}) ([a-z]+) (\d+) ([a-z \-]+) ([0-9\.]+) ([a-z\- ]+)([0-9\.\, ]*)'
                 clients = re.findall(clients_pattern,agent[0],re.IGNORECASE|re.DOTALL|re.MULTILINE)
                 clients2 = re.findall(clients_pattern2,agent[0],re.IGNORECASE|re.DOTALL|re.MULTILINE)
 
@@ -684,17 +683,18 @@ class PDFS(PDFEditor):
                             "TRDT": client[5],
                             "PRDT": client[6],
                             "Months": client[7],
-                            " ": client[8],
+                            "Field1": client[8],
                             "Du": client[9],
                             "PRO": client[10],
                             "LV": client[11],
                             "Base Amount": client[12],
                             'TRX': client[13],
-                            " ": " ",
+                            "Field2": " ",
                             "Rate": client[14],
                             "Split": client[15],
                             "Amt": client[16],
                             "Acct": client[17],
+                            "Primary Balance": client[18],
                         })
                         
                 if clients2:
@@ -716,17 +716,18 @@ class PDFS(PDFEditor):
                             "TRDT": client[5],
                             "PRDT": client[6],
                             "Months": "",
-                            " ": "",
+                            "Field1": "",
                             "Du": client[7],
                             "PRO": client[8],
                             "LV": client[9],
                             "Base Amount": "",
                             'TRX': client[10],
-                            " ": " ",
+                            "Field2": " ",
                             "Rate": "",
                             "Split": "",
                             "Amt": client[11],
                             "Acct": client[12],
+                            "Primary Balance": client[13],
                         })
                     
         #First year earnings activity
@@ -753,17 +754,18 @@ class PDFS(PDFEditor):
                     "TRDT": client[5],
                     "PRDT": client[6],
                     "Months": client[7],
-                    " ": client[8],
+                    "Field1": client[8],
                     "Du": client[9],
                     "PRO": client[10],
                     "LV": client[11],
                     "Base Amount": client[12],
                     'TRX': client[13],
-                    " ": " ",
+                    "Field2": " ",
                     "Rate": client[14],
                     "Split": client[15],
                     "Amt": "",
                     "Acct": "",
+                    "Primary Balance": client[16]
                 })
                 
         #Renewal earnings activity
@@ -790,17 +792,18 @@ class PDFS(PDFEditor):
                     "TRDT": client[5],
                     "PRDT": client[6],
                     "Months": client[7],
-                    " ": client[8],
+                    "Field1": client[8],
                     "Du": client[9],
                     "PRO": client[10],
                     "LV": client[11],
                     "Base Amount": client[12],
                     'TRX': client[13],
-                    " ": " ",
+                    "Field2": " ",
                     "Rate": client[14],
                     "Split": client[15],
                     "Amt": "",
                     "Acct": "",
+                    "Primary Balance": client[16],
                 })
                     
         #Override Activity
@@ -829,23 +832,24 @@ class PDFS(PDFEditor):
                         "TRDT": client[5],
                         "PRDT": client[6],
                         "Months": client[7],
-                        " ": client[8],
+                        "Field1": client[8],
                         "Du": client[9],
                         "PRO": client[10],
                         "LV": client[11],
                         "Base Amount": client[12],
                         'TRX': client[13],
-                        " ": " ",
+                        "Field2": " ",
                         "Rate": client[14],
                         "Split": client[15],
                         "Amt": "",
                         "Acct": "",
+                        "Primary Balance": client[16]
                     })
                     
         #Chargeback Activity
         chargeback_activity_pattern = r'chargeback activity(.*?)total pay basis'
         # chargeback_clients_pattern = r'(\w+) ([a-z ]+) (\d+) (?:\d+ )?(\d+) (\w+) (\d+) (\d+) (\d+) ([a-z]+) (\d+) ([0-9\.\,\-]+) ([a-z \-]+) ([0-9\.]+) (\d+)( [0-9\.\,\-]+)$'
-        chargeback_clients_pattern = r'(\w+) ([a-z ]+) (\d+) (?:\d+ )?(\d+) (\w+) (\d+) (\d+) (\d+) ([a-z]+) (\d+) ([0-9\.\,\-]+) ([a-z \-]+) ([0-9\.]+) (\d+)'
+        chargeback_clients_pattern = r'(\w+) ([a-z ]+) (\d+) (?:\d+ )?(\d+) (\w+) (\d+) (\d+) (\d+) ([a-z]+) (\d+) ([0-9\.\,\-]+) ([a-z \-]+) ([0-9\.]+) (\d+)([0-9\.\, ]*)'
         chargeback_activity = re.search(chargeback_activity_pattern,text,re.DOTALL|re.IGNORECASE)
         if chargeback_activity:
             chargeback_activity = chargeback_activity.group(1).strip()
@@ -870,17 +874,18 @@ class PDFS(PDFEditor):
                         "TRDT": client[5],
                         "PRDT": client[6],
                         "Months": "",
-                        " ": "",
+                        "Field1": "",
                         "Du": client[7],
                         "PRO": client[8],
                         "LV": client[9],
                         "Base Amount": client[10],
                         'TRX': client[11],
-                        " ": " ",
+                        "Field2": " ",
                         "Rate": client[12],
                         "Split": client[13],
                         "Amt": "",
                         "Acct": "",
+                        "Primary Balance": client[14],
                     })                
         try:
             for i in range(1):
@@ -890,3 +895,151 @@ class PDFS(PDFEditor):
 
         df = pd.DataFrame(data)
         return df, self.pdf_output_name
+
+    def caresource(self):
+        is_scanned = self.is_scanned_pdf(2)
+        if is_scanned:
+            text = self.ocr_pdf_local()
+        else:
+            text = self.extract_text() 
+            
+        data = []
+        carrier = "CareSource"
+             
+        commission_type_pattern = r'\w+, \w+, \d+ ([a-z ]+)'
+        commission_period_pattern = r'commission period:([0-9\/]+)'
+        try:
+            commission_type = re.search(commission_type_pattern,text,re.IGNORECASE).group(1)
+            commission_period = re.search(commission_period_pattern,text,re.IGNORECASE).group(1)
+
+        except AttributeError as AttrErr:
+            print(AttrErr)
+            return None, None
+        
+        writing_producers_pattern = r'writing producer (\d+) ([a-z\,\- ]+)(.*?)total for writing producer'
+        categories_pattern = r'^([a-z ]+)\n(.*?)total for'
+        clients_pattern = r'^(\d+) ([a-z ]+, [a-z]+) (OH [a-z ]+) ([a-z]+) (\d+\/\d+\/\d+)( \d+\/\d+\/\d+)? (\d+\/\d+\/\d+) (\d+\/\d+) (\w+) ([0-9\,\.]+) ([0-9\,\.]+)'
+        clients_pattern_2 = r'^(\d+) ([a-z]+) (oh [a-z ]+) ([a-z]+) (\d+\/\d+\/\d+)( \d+\/\d+\/\d+)? (\d+\/\d+\/\d+) (\d+\/\d+) (\w+) ([0-9\,\.]+) ([0-9\,\.]+)'
+        clients_pattern_3 = r'^(\d+) ([a-z ]+), (oh [a-z ]+) ([a-z]+) (\d+\/\d+\/\d+)( \d+\/\d+\/\d+)? (\d+\/\d+\/\d+) (\d+\/\d+) (\w+) ([0-9\,\.]+) ([0-9\,\.]+)'
+        clients_pattern_4 = r'(\d+) ([a-z]+, [a-z]+) ([a-z0-9 \$]+) ([a-z]{2}) (\d+\/\d+\/\d+)( [0-9\/]+)? (\d+\/\d+) (\w+) ([0-9\$\,\. ]+) ([0-9\.\%]+) (\$ ?[0-9\.\,]+) (\$ ?[0-9\.\,]+) (\$ ?[0-9\.\,]+) (\$ ?[0-9\.\,]+) (\d+) (\$ ?[0-9\.\,]+) (\w+) (\$ ?[0-9\.\,]+)'
+        
+        writing_producers = re.findall(writing_producers_pattern,text,re.IGNORECASE|re.DOTALL)
+        for w_producer in writing_producers:
+            writing_producer_id = w_producer[0]
+            writing_producer_name = w_producer[1]
+            categories = re.findall(categories_pattern,w_producer[2],re.IGNORECASE|re.DOTALL|re.MULTILINE)
+            for category in categories:
+                commission_category = category[0]
+                clients = re.findall(clients_pattern,category[1],re.IGNORECASE|re.MULTILINE)
+                clients2 = re.findall(clients_pattern_2,category[1],re.IGNORECASE|re.MULTILINE)
+                clients3 = re.findall(clients_pattern_3,category[1],re.IGNORECASE|re.MULTILINE)
+                clients4 = re.findall(clients_pattern_4,category[1],re.IGNORECASE|re.MULTILINE)
+                
+                if clients:
+                    for client in clients:
+                        data.append({
+                            "Carrier": carrier,
+                            "Type": commission_type,
+                            "Commission Period": commission_period,
+                            "Writing Producer ID": writing_producer_id,
+                            "Writing Producer Name": writing_producer_name,
+                            "Category": commission_category,
+                            "Member ID": client[0],
+                            "Name": client[1],
+                            "Product": client[2],
+                            "Policy State": client[3],
+                            "Effective Date": client[4],
+                            "Term Date": client[5],
+                            "Signed Date": client[6],
+                            "Period": client[7],
+                            "Retro ?": client[8],
+                            "Rate": client[9],
+                            "Commission Amount": client[10] 
+                            
+                        })
+                        
+                if clients2:
+                    for client in clients2:
+                        data.append({
+                            "Carrier": carrier,
+                            "Type": commission_type,
+                            "Commission Period": commission_period,
+                            "Writing Producer ID": writing_producer_id,
+                            "Writing Producer Name": writing_producer_name,
+                            "Category": commission_category,
+                            "Member ID": client[0],
+                            "Name": client[1],
+                            "Product": client[2],
+                            "Policy State": client[3],
+                            "Effective Date": client[4],
+                            "Term Date": client[5],
+                            "Signed Date": client[6],
+                            "Period": client[7],
+                            "Retro ?": client[8],
+                            "Rate": client[9],
+                            "Commission Amount": client[10] 
+                            
+                        })
+                if clients3:
+                    for client in clients3:
+                        data.append({
+                            "Carrier": carrier,
+                            "Type": commission_type,
+                            "Commission Period": commission_period,
+                            "Writing Producer ID": writing_producer_id,
+                            "Writing Producer Name": writing_producer_name,
+                            "Category": commission_category,
+                            "Member ID": client[0],
+                            "Name": client[1],
+                            "Product": client[2],
+                            "Policy State": client[3],
+                            "Effective Date": client[4],
+                            "Term Date": client[5],
+                            "Signed Date": client[6],
+                            "Period": client[7],
+                            "Retro ?": client[8],
+                            "Rate": client[9],
+                            "Commission Amount": client[10] 
+                            
+                        })
+                
+                if clients4:
+                    for client in clients4:
+                        data.append({
+                            "Carrier": carrier,
+                            "Type": commission_type,
+                            "Commission Period": commission_period,
+                            "Writing Producer ID": writing_producer_id,
+                            "Writing Producer Name": writing_producer_name,
+                            "Category": commission_category,
+                            "Member ID": client[0],
+                            "Name": client[1],
+                            "Product": client[2],
+                            "State": client[3],
+                            "Effective Date": client[4],
+                            "Termination Date": client[5],
+                            "Period": client[6],
+                            "Retro ?": client[7],
+                            "Premium": client[8],
+                            "% of Premium": client[9],
+                            "Commission Based on Premium": client[10],
+                            "Base PMPM Rate": client[11],
+                            "Enhanced PMPM Rate": client[12],
+                            "Rate": client[13],
+                            "Member Count": client[14],
+                            "Commission Based on Rate": client[15],
+                            "Override": client[16],
+                            "Total Commission Paid": client[17],
+                            
+                        })
+        
+        try:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        except IndexError:
+            return None, None
+
+        df = pd.DataFrame(data)
+        return df, self.pdf_output_name
+        
+        
