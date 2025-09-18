@@ -16,13 +16,14 @@ def upload_pdf(request):
         form = PDFUploadForm(request.POST, request.FILES)
         if form.is_valid():
             pdf_files = request.FILES.getlist('pdf_file')  # Get the list of uploaded files
+            passw = form.cleaned_data["password"]
             filenames = []
             
             
             for pdf_file in pdf_files:
                 # print(f"PDF File is {pdf_file}")
                 # Create an instance of the PDFEditor class
-                pdf_editor = PDFEditor(pdf_file)
+                pdf_editor = PDFEditor(pdf_file,pw=passw)
                 extended_pdf_editor = PDFS(pdf_file)
                 
                 
@@ -36,28 +37,31 @@ def upload_pdf(request):
                 except IndexError:
                     pdf_name = pdf_editor.pdf_output_name
          
-                is_scanned = pdf_editor.is_scanned_pdf(2)
+                is_scanned = pdf_editor.is_scanned_pdf(2,passw)
+                
                 if is_scanned:
                     first_page_text = pdf_editor.ocr_pdf_local(1)
+      
                 else:
                     # start_time = time.time()
                     # Extract text from the PDF and determine processing method
-                    passwords = [None,"2646","WG500","LBL22728","7964","mphc4apps","LBL65710"]
+                    passwords = [None,"2646","WG500","7964","mphc4apps","LBL65710"]
                     pw = pdf_name.rstrip("Z")
                     passwords.append(pw)
-                    for password in passwords:
-                        try:
-                            first_page_text = pdf_editor.extract_text(pages=3,password=password)
-                            break
-                        except IndexError:
-                            first_page_text = pdf_editor.extract_text(pages=1,password=password)
-                            break
-                        except PDFPasswordIncorrect:
-                            continue
+                    
+                    try:
+                        first_page_text = pdf_editor.extract_text(pages=3,password=passw)
+
+                    except IndexError:
+                        first_page_text = pdf_editor.extract_text(pages=1,password=passw)
+                       
+                    except PDFPasswordIncorrect as e:
+                        print(f"Error is {e}")
+                        return render(request, 'upload.html', {'form': form, 'pw_error': True})
                 decoded = pdf_editor.processText(first_page_text)
                 # print(first_page_text)
                 # print(first_page_text)
-                
+
                 df = None
                 output_name = ""
   

@@ -13,9 +13,10 @@ import cv2
 import numpy as np
 
 class PDFEditor:
-    def __init__(self, pdf_file):
+    def __init__(self, pdf_file,pw=None):
         self.pdf_file = pdf_file
         self.pdf_output_name = pdf_file.name.rstrip(".pdf")
+        self.password = pw
         
     def is_image(self):
         with pdfplumber.open(self.pdf_file) as pdf:
@@ -54,7 +55,7 @@ class PDFEditor:
                     return True
         return False
     
-    def is_scanned_pdf(self, sample_pages: int = 5) -> bool:
+    def is_scanned_pdf(self, sample_pages: int = 5,password=None) -> bool:
         """
         Returns True if the PDF looks like a scanned (image-only) PDF.
         Returns False if it appears to contain OCR or digitally embedded text.
@@ -62,7 +63,7 @@ class PDFEditor:
         sample_pages: How many pages to check before deciding.
         """
         try:
-            with pdfplumber.open(self.pdf_file) as pdf:
+            with pdfplumber.open(self.pdf_file,password=password) as pdf:
                 pages_to_check = min(sample_pages, len(pdf.pages))
                 for i in range(pages_to_check):
                     page = pdf.pages[i]
@@ -72,7 +73,7 @@ class PDFEditor:
             return True  # no text found on sampled pages → scanned
         except Exception as e:
             print(f"Error checking PDF: {e}")
-            return True
+            return False
         
     def ocr_pdf_local(self,length=None):
         t0 = time.perf_counter()
@@ -2011,14 +2012,16 @@ class PDFEditor:
         ]
         
         carrier = "LifeShield"
-        passwords = ["2646","7964"]
+        # passwords = ["2646","7964"]
 
-        for password in passwords:
-            try:
-                test = self.clean_lines_main(column_ranges=column_ranges,password=password)
-                break
-            except PDFPasswordIncorrect:
-                continue
+        # for password in passwords:
+        #     try:
+        #         test = self.clean_lines_main(column_ranges=column_ranges,password=password)
+        #         break
+        #     except PDFPasswordIncorrect:
+        #         continue
+        
+        test = self.clean_lines_main(column_ranges=column_ranges,password=self.password)
         # print(f"TEST IS {test}")        
         data = []
 
@@ -2110,7 +2113,7 @@ class PDFEditor:
           
     def libery_bankers(self):
         output_name = self.pdf_output_name
-        passwords = ["WG500","LBL22728","LBL65710"]
+        passwords = ["WG500","LBL65710"]
         text = None
         try:
             pw_name = self.pdf_output_name.split()[2]
@@ -2120,18 +2123,24 @@ class PDFEditor:
             pass
                 
         is_lbl = False
-        for password in passwords:
-            is_lbl = False
-            try:
-                text = self.extract_text(password=password)
-                # """Delete this part"""
-                # if password == "LBL22728" and output_name == "Agent Statements 22728 LBL22728ZZ 01-02-25 (1)":
-                #     tables_from_pdf = self.extract_tables_from_pdf(password=password)
-                #     is_lbl = True
-                #     """Up to here"""
-                break
-            except PDFPasswordIncorrect:
-                continue
+        # for password in passwords:
+        #     is_lbl = False
+        #     try:
+        #         text = self.extract_text(password=password)
+        #         # """Delete this part"""
+        #         # if password == "LBL22728" and output_name == "Agent Statements 22728 LBL22728ZZ 01-02-25 (1)":
+        #         #     tables_from_pdf = self.extract_tables_from_pdf(password=password)
+        #         #     is_lbl = True
+        #         #     """Up to here"""
+        #         break
+        #     except PDFPasswordIncorrect:
+        #         continue
+        text = self.extract_text(password=self.password)
+            # """Delete this part"""
+            # if password == "LBL22728" and output_name == "Agent Statements 22728 LBL22728ZZ 01-02-25 (1)":
+            #     tables_from_pdf = self.extract_tables_from_pdf(password=password)
+            #     is_lbl = True
+            #     """Up to here"""
         if not text:
             return None, None
         data = []
