@@ -67,6 +67,12 @@
         .download a {
             color: #217346
         }
+        #pwLabel {
+            display: none;
+        }
+        #pw {
+            margin-top: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -85,6 +91,7 @@
                 <div id="dropZone" class="drop-zone">
                     Drag and Drop your PDFs here to start
                 </div>
+                {{ form.password }}
                 <div id="fileError"></div>
                 <div id="loading">Processing your file, please wait...</div>
                 <div class="text-center mt-4">
@@ -96,6 +103,8 @@
             <div id="ready">
                 {% if message %}
                     <p>No rows found or not a valid PDF file</p>
+                {% elif pw_error %}
+                    <p>Invalid Password</p>
                 {% endif %}
                 
                 {% if download_url %}
