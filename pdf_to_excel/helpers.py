@@ -12,11 +12,91 @@ from google.cloud import vision
 import cv2
 import numpy as np
 
+def _snap_to_quadrant(angle_deg: float) -> int:
+    """Normalize angle to closest of 0, 90, 180, 270."""
+    a = (angle_deg % 360 + 360) % 360
+    candidates = [0, 90, 180, 270]
+    return min(candidates, key=lambda q: min(abs(a - q), 360 - abs(a - q)))
+
 class PDFEditor:
     def __init__(self, pdf_file,pw=None):
         self.pdf_file = pdf_file
         self.pdf_output_name = pdf_file.name.rstrip(".pdf")
         self.password = pw
+        
+        # ------------------------------
+    # Google Cloud Vision Orientation
+    # ------------------------------
+    def _detect_with_gcv(self, mu_page, dpi=150):
+        """
+        Render page to PNG, send to Google Cloud Vision,
+        return estimated orientation (0/90/180/270).
+        """
+        client = vision.ImageAnnotatorClient()
+
+        zoom = dpi / 72.0
+        mat = fitz.Matrix(zoom, zoom)
+        pix = mu_page.get_pixmap(matrix=mat, alpha=False)
+        content = pix.tobytes("png")
+
+        image = vision.Image(content=content)
+        resp = client.document_text_detection(image=image)
+        if resp.error.message:
+            print(f"GCV error: {resp.error.message}")
+            return None
+
+        angles = []
+        for page in resp.full_text_annotation.pages:
+            for block in page.blocks:
+                for para in block.paragraphs:
+                    for word in para.words:
+                        v = word.symbols[0].bounding_box.vertices
+                        if len(v) >= 2:
+                            dx = v[1].x - v[0].x
+                            dy = v[1].y - v[0].y
+                            if dx or dy:
+                                ang = math.degrees(math.atan2(dy, dx))
+                                angles.append(ang)
+
+        if not angles:
+            return None
+
+        s = sum(math.sin(math.radians(a)) for a in angles)
+        c = sum(math.cos(math.radians(a)) for a in angles)
+        avg = math.degrees(math.atan2(s, c))
+        return _snap_to_quadrant(avg)
+
+    def auto_rotate_with_gcv(self):
+        """
+        Auto-rotate pages based on orientation detected by Google Cloud Vision.
+        """
+        self.pdf_file.seek(0)
+        pdf_bytes = self.pdf_file.read()
+        mu_doc = fitz.open("pdf", pdf_bytes)
+
+        try:
+            for i in range(len(mu_doc)):
+                mu_page = mu_doc[i]
+                meta_rot = mu_page.rotation or 0
+
+                detected = self._detect_with_gcv(mu_page)
+                if detected is None:
+                    detected = 0
+
+                new_rot = (meta_rot - detected) % 360
+                if new_rot != meta_rot:
+                    mu_page.set_rotation(new_rot)
+
+                print(
+                    f"Page {i+1}: GCV detected {detected}°, metadata {meta_rot}°, applied -> {new_rot}°"
+                )
+
+        finally:
+            out = BytesIO()
+            mu_doc.save(out)
+            mu_doc.close()
+            out.seek(0)
+        return out
         
     def is_image(self):
         with pdfplumber.open(self.pdf_file) as pdf:
@@ -31,6 +111,7 @@ class PDFEditor:
         doc = fitz.open("pdf", pdf_bytes)  # Open from bytes
         
         for page in doc:
+            print(page.rotation)
             if page.rotation != 0:
                 page.set_rotation(rotation)  # Rotate each page
 

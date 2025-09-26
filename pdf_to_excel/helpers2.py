@@ -781,7 +781,7 @@ class PDFS(PDFEditor):
                     "Agency Number": agency_number,
                     "Agency": agency_name,
                     "Date": date,
-                    "Type": "Advance Activity",
+                    "Type": "Renewal Earnings Activity",
                     "Writing Agent Number": agency_number,
                     "Writing Agent Name": agency_name,
                     "Policy Number": client[0],
@@ -821,7 +821,7 @@ class PDFS(PDFEditor):
                         "Agency Number": agency_number,
                         "Agency": agency_name,
                         "Date": date,
-                        "Type": "Advance Activity",
+                        "Type": "Override Activity",
                         "Writing Agent Number": agent[1],
                         "Writing Agent Name": agent[2],
                         "Policy Number": client[0],
@@ -863,7 +863,7 @@ class PDFS(PDFEditor):
                         "Agency Number": agency_number,
                         "Agency": agency_name,
                         "Date": date,
-                        "Type": "Advance Activity",
+                        "Type": "Chargeback Activity",
                         "Writing Agent Number": agent[1],
                         "Writing Agent Name": agent[2],
                         "Policy Number": client[0],
@@ -1041,5 +1041,58 @@ class PDFS(PDFEditor):
 
         df = pd.DataFrame(data)
         return df, self.pdf_output_name
+    
+    def premera(self):
+        data = []
+        text = self.auto_rotate_with_gcv()
+        full_text = self.extract_text_delta(text=text)
         
+        carrier_pattern = r'(lifewise|premera)'
+        carrier = re.search(carrier_pattern,full_text,re.IGNORECASE).group(1)
+        
+        premera_info_pattern = r'report date: ([0-9\/]+).*?id#: (\d+).*?for period ending ([0-9\-]+)\n([a-z ]+)\nproducer'
+        premera_info = re.search(premera_info_pattern,full_text,re.IGNORECASE|re.DOTALL)
+        
+        producers_pattern = r'(\d+) \/ ([a-z ]+)\n(.*?)total for producer'
+        
+        clients_pattern = r'(\d+) \/ ([a-z \-\']+) ([a-z]{3}) ([a-z\/0-9]+) (\$[0-9\.\,]+ \w+) ([a-z0-9 \(\)]+) (\$[0-9\,\.]+)'
+        
+        if not premera_info:
+            return None, None
+        
+        report_date, premera_id, period_ending, agency = premera_info.groups() 
+        
+        print(report_date, premera_id, period_ending,agency)
+        
+        producers = re.findall(producers_pattern,full_text,re.IGNORECASE|re.DOTALL|re.MULTILINE)
+        
+        for producer in producers:
+            producer_id = producer[0]
+            producer_name = producer[1]
+            clients = re.findall(clients_pattern,producer[2],re.IGNORECASE|re.DOTALL)
+            for client in clients:
+                data.append({
+                    "Carrier": carrier,
+                    "Report Date": report_date,
+                    "ID": premera_id,
+                    "For Period Ending": period_ending,
+                    "Agency": agency,
+                    "Producer ID": producer_id,
+                    "Producer Name": producer_name,
+                    "Customer ID": client[0],
+                    "Customer Name": client[1],
+                    "Product Type": client[2],
+                    "Earned Month": client[3],
+                    "Commission Method/Amount": client[4],
+                    "Commission Basis": client[5],
+                    "Commission Amount": client[6],
+                })
+        try:
+            for i in range(1):
+                data[i]["Converted from .pdf by"] = ""
+        except IndexError:
+            return None, None
+
+        df = pd.DataFrame(data)
+        return df, self.pdf_output_name
         

@@ -270,6 +270,8 @@ def upload_pdf(request):
                     df, output_name = extended_pdf_editor.americo()
                 elif "Member ID Name Product State Date Date Period Retro ? Premium Premium Premium Rate Rate Rate Count Rate Override Paid" in first_page_text or "Member ID Name Product Policy State Date Date Period Retro ? Rate Amount" in first_page_text:
                     df, output_name = extended_pdf_editor.caresource()
+                elif "Premera" in first_page_text or "LifeWise" in first_page_text:
+                    df,output_name = extended_pdf_editor.premera()
                 # elif "Kaiser Foundation Health Plan of Georgia" in first_page_text:
                 #     df,output_name = pdf_editor.kaiser_georgia()
                 # Add other conditions as needed...
