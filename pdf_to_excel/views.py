@@ -263,7 +263,7 @@ def upload_pdf(request):
                     ]
                     df,output_name = pdf_editor.bcbs_sc(column_ranges,column_ranges_two)
                     
-                elif "Member ID Name Product Premium Due Date Members Commission Amount" in first_page_text:
+                elif "Member ID Name Product Premium Due Date Members Commission Amount" in first_page_text or "Number ID Name Product Date Date Year Amount Rate Amount" in first_page_text:
                     df,output_name = extended_pdf_editor.bcbs_kc()
                 elif "Share Number Member Plan Share Strt Date Share Month Yr Monthly Share Rate Comm" in first_page_text:
                     df,output_name = extended_pdf_editor.health_trust()

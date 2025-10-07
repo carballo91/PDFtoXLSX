@@ -906,10 +906,12 @@ class PDFS(PDFEditor):
         data = []
         carrier = "CareSource"
              
-        commission_type_pattern = r'\w+, \w+, \d+ ([a-z ]+)'
+        commission_type_pattern = r'(?:\w+, \w+, \d+ ([a-z ]+))|(?:([a-z ]+)\nproducer id#)'
         commission_period_pattern = r'commission period:([0-9\/]+)'
+        
+        commission_type_match = re.search(commission_type_pattern,text,re.IGNORECASE)
         try:
-            commission_type = re.search(commission_type_pattern,text,re.IGNORECASE).group(1)
+            commission_type = commission_type_match.group(1) or commission_type_match.group(2)
             commission_period = re.search(commission_period_pattern,text,re.IGNORECASE).group(1)
 
         except AttributeError as AttrErr:
