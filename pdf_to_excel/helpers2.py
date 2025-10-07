@@ -6,7 +6,7 @@ import pandas as pd
 class PDFS(PDFEditor):
     def __init__(self, pdf_file):
         super().__init__(pdf_file)
-        
+            
     def BCBS_Nebraska(self):
         text = self.extract_text()
         

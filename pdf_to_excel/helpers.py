@@ -828,7 +828,7 @@ class PDFEditor:
         
         clients_pattern = r'^(\d+)\s([a-zA-Z]+(?:\s[a-zA-Z-]+){0,3})\s(\w+)\s(\d+(?:\s[a-zA-Z]+){0,4})\s(\w+)\s(\w+\s)?(\d+\/\d+\/\d+)\s(\d+\/\d+\/\d+\s)?(\d+\/\d+\/\d+)\s(\d+\/\d+)\s(\d+\s)?(\w+)\s(\(?\$ (?:\d+,)?\d+\.\d+\)?)$'
         
-        
+
         for producer in producers:
             statements = re.findall(statements_pattern,producer[2],re.MULTILINE|re.IGNORECASE|re.DOTALL)
             writing_producer = producer[0]
@@ -874,12 +874,12 @@ class PDFEditor:
         date = re.search(r"Activity Ending Date: (\d+\/\d+\/\d+)",text,re.DOTALL)
         date = date.group(1)
         
-        pay_entity = re.search(r"Pay Entity: ([a-zA-Z-]+(?:\s[a-zA-Z-]+){0,3}) Activity Ending Date",text,re.DOTALL)
+        pay_entity = re.search(r"Pay Entity: ([a-zA-Z-]+(?:\s[a-zA-Z-]+){0,5}) Activity Ending Date",text,re.DOTALL)
         pay_entity = pay_entity.group(1)
         
         #Info patterns
         pattern = r"(\d+)\s([a-zA-Z-]+\s[a-zA-Z-]+(?:\s[a-zA-Z])?)\s(\w+)\s(\w+)\s(\d+\/\d+\/\d+)\s(\d+\/\d+\/\d+)\s(.*?)\s(\(?\$\s(?:\d+,)?\d+.\d+\)?)\s(\d+)\s(\d+.\d+%)\s(\(?\$\s(?:\d+,)?\d+.\d+\)?)"
-        tpe = re.findall(r"Producer (\d+) NPN (\d+) Producer Name ([a-zA-Z-]+(?:\s[a-zA-Z-]+){0,3}) Total(.*?)Total Individual Payment",text,re.DOTALL)
+        tpe = re.findall(r"Producer (\d+) NPN (\d+) Producer Name ([a-zA-Z-]+(?:\s[a-zA-Z-]+){0,5}) Total(.*?)Total Individual Payment",text,re.DOTALL)
         
         for t in tpe:
             id,npn,name = t[0],t[1],t[2]
@@ -3021,6 +3021,7 @@ class PDFEditor:
         clients_pattern = r'^(\d+)\s([a-zA-Z]+(?:\s[a-zA-Z-]+){0,3})\s(\w+)\s(\d+(?:\s[a-zA-Z]+){0,4})\s(\w+)\s(\w+\s)?(\d+\/\d+\/\d+)\s(\d+\/\d+\/\d+\s)?(\d+\/\d+\/\d+)\s(\d+\/\d+)\s(\d+\s)?(\w+)\s(\(?\$ (?:\d+,)?\d+\.\d+\)?)$'
         
         for table in tables:
+            # print(table)
             for t in table:
                 if len(t) == 9 and t[-1] and t[-1].startswith('$'):
                     data.append({

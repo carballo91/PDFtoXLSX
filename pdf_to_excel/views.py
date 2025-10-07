@@ -59,7 +59,8 @@ def upload_pdf(request):
                         print(f"Error is {e}")
                         return render(request, 'upload.html', {'form': form, 'pw_error': True})
                 decoded = pdf_editor.processText(first_page_text)
-                # print(first_page_text)
+                print("first page")
+                print(first_page_text)
                 # print(first_page_text)
 
                 df = None
@@ -81,7 +82,7 @@ def upload_pdf(request):
                     df, output_name = pdf_editor.sentinel()
                 elif "Member ID Name Company Product HICN Override Date Date Period Year Retro Amount" in first_page_text:
                     df, output_name = pdf_editor.bcbs_la_commisions("BCBS LA")
-                elif "Current ContractSubscriber Name Company MOP OED Due Date Product Name Premium Elapsed Comm. % Commission" in first_page_text:
+                elif "Current ContractSubscriber Name Company MOP OED Due Date Product Name Premium Elapsed Comm. % Commission" in first_page_text or "Group # Group Name Comp Earn OED Due Date Comm Type Comm Premium Flat Rate CPI Adj Net Comm Comm YTD Split % Prim Comm" in first_page_text:
                     df, output_name = pdf_editor.bcbs_la_compensation()
                 elif "Member ID Writing ID Name Product State Date Term Date Term Code Period Type Retro Amount" in first_page_text:
                     df, output_name = pdf_editor.essence_file()
